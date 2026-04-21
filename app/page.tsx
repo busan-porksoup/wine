@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import AddWineModal from './AddWineModal'
+import Analytics from './Analytics'
 
 const TYPE_BADGE: Record<string, { emoji: string; label: string; bg: string; color: string }> = {
   red:      { emoji: '🍷', label: '레드',   bg: 'rgba(139,38,53,0.1)',  color: '#8B2635' },
@@ -72,7 +73,6 @@ export default function Home() {
 
   function openDetail(wine: any) {
     setSelected(wine)
-    // 기존 메모 불러오기
     try {
       const memo = JSON.parse(wine.memo || '{}')
       setMemoJ(memo.jaehyuk || '')
@@ -86,7 +86,6 @@ export default function Home() {
     setSaveMsg('')
   }
 
-  // 메모 + 별점 업데이트
   async function handleSave() {
     if (!selected) return
     setSaving(true)
@@ -112,7 +111,6 @@ export default function Home() {
     }
   }
 
-  // 삭제
   async function handleDelete() {
     if (!selected) return
     if (!confirm(`"${selected.name}" 을 삭제할까요?`)) return
@@ -152,7 +150,7 @@ export default function Home() {
           <div style={{ display: 'flex', gap: '24px' }}>
             {[
               [String(wines.length), '기록'],
-              [wines.length > 0 ? String(Math.round(wines.reduce((a, w) => a + (w.rating || 0), 0) / wines.length * 10) / 10) : '—', '평균별점'],
+              [wines.length > 0 ? String(Math.round(wines.filter(w => w.rating).reduce((a, w) => a + w.rating, 0) / wines.filter(w => w.rating).length * 10) / 10) : '—', '평균별점'],
               [String(new Set(wines.map(w => w.country)).size), '나라'],
             ].map(([val, lbl]) => (
               <div key={lbl}>
@@ -198,13 +196,9 @@ export default function Home() {
                 return (
                   <div key={wine.id} onClick={() => openDetail(wine)}
                     style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: 'pointer', border: '1px solid #F0EAE0' }}>
-                    <div style={{
-                      height: '140px', position: 'relative',
-                      background: wine.image_url ? 'none' : 'linear-gradient(135deg, #2D1B35 0%, #4A2040 100%)',
-                    }}>
+                    <div style={{ height: '140px', position: 'relative', background: wine.image_url ? 'none' : 'linear-gradient(135deg, #2D1B35 0%, #4A2040 100%)' }}>
                       {wine.image_url && (
-                        <img src={wine.image_url} alt={wine.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                        <img src={wine.image_url} alt={wine.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
                       )}
                       <div style={{ position: 'absolute', top: 8, left: 8, fontSize: '10px', fontWeight: '600', color: 'rgba(255,255,255,0.9)', background: 'rgba(0,0,0,0.35)', padding: '2px 7px', borderRadius: '6px' }}>
                         {wine.drunk_at}
@@ -226,13 +220,7 @@ export default function Home() {
       )}
 
       {/* 분석 탭 */}
-      {activeTab === '분석' && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
-          <div style={{ fontSize: '16px', fontWeight: '600', color: '#555', marginBottom: '8px' }}>분석 준비 중</div>
-          <div style={{ fontSize: '13px', color: '#AAA' }}>와인을 더 기록하면 분석이 시작돼요</div>
-        </div>
-      )}
+      {activeTab === '분석' && <Analytics wines={wines} />}
 
       {/* + 버튼 */}
       <button onClick={() => setShowAdd(true)} style={{
@@ -244,7 +232,6 @@ export default function Home() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>+</button>
 
-      {/* 와인 추가 모달 */}
       {showAdd && (
         <AddWineModal
           onClose={() => setShowAdd(false)}
@@ -263,19 +250,11 @@ export default function Home() {
             background: '#fff', borderRadius: '24px 24px 0 0',
             width: '100%', maxWidth: '430px', maxHeight: '88vh', overflowY: 'auto',
           }}>
-
-            {/* 모달 이미지 */}
-            <div style={{
-              height: '220px',
-              background: selected.image_url ? 'none' : 'linear-gradient(160deg, #1A1A2E, #4A2040)',
-              borderRadius: '24px 24px 0 0', position: 'relative', overflow: 'hidden',
-            }}>
+            <div style={{ height: '200px', background: selected.image_url ? 'none' : 'linear-gradient(160deg, #1A1A2E, #4A2040)', borderRadius: '24px 24px 0 0', position: 'relative', overflow: 'hidden' }}>
               {selected.image_url && (
-                <img src={selected.image_url} alt={selected.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                <img src={selected.image_url} alt={selected.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
               )}
               <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.3)' }}/>
-              {/* 삭제 버튼 */}
               <button onClick={handleDelete} disabled={deleting} style={{
                 position: 'absolute', top: 16, right: 16,
                 background: 'rgba(0,0,0,0.4)', border: 'none',
@@ -300,7 +279,6 @@ export default function Home() {
 
               <div style={{ height: 1, background: '#F0EAE0', marginBottom: '20px' }}/>
 
-              {/* 총점 */}
               <div style={{ marginBottom: '20px' }}>
                 <div style={{ fontSize: '11px', fontWeight: '600', color: '#AAA', marginBottom: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>Total Rating</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -313,7 +291,6 @@ export default function Home() {
 
               <div style={{ height: 1, background: '#F0EAE0', marginBottom: '20px' }}/>
 
-              {/* 재혁 */}
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                   <Avatar name="재혁" gradient="linear-gradient(135deg, #8B2635, #C0394D)" />
@@ -322,17 +299,9 @@ export default function Home() {
                 </div>
                 <textarea value={memoJ} onChange={e => setMemoJ(e.target.value)}
                   placeholder="재혁의 한 줄 평..."
-                  style={{
-                    width: '100%', height: '68px', borderRadius: '12px',
-                    border: '1.5px solid #F0EAE0', padding: '10px 14px',
-                    fontSize: '14px', resize: 'none',
-                    fontFamily: "'Pretendard', sans-serif",
-                    boxSizing: 'border-box', color: '#1A1A1A',
-                    background: '#FAFAF8', outline: 'none',
-                  }}/>
+                  style={{ width: '100%', height: '68px', borderRadius: '12px', border: '1.5px solid #F0EAE0', padding: '10px 14px', fontSize: '14px', resize: 'none', fontFamily: "'Pretendard', sans-serif", boxSizing: 'border-box', color: '#1A1A1A', background: '#FAFAF8', outline: 'none' }}/>
               </div>
 
-              {/* 원우 */}
               <div style={{ marginBottom: '28px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                   <Avatar name="원우" gradient="linear-gradient(135deg, #3A7FA0, #5BA8C8)" />
@@ -341,14 +310,7 @@ export default function Home() {
                 </div>
                 <textarea value={memoW} onChange={e => setMemoW(e.target.value)}
                   placeholder="원우의 한 줄 평..."
-                  style={{
-                    width: '100%', height: '68px', borderRadius: '12px',
-                    border: '1.5px solid #F0EAE0', padding: '10px 14px',
-                    fontSize: '14px', resize: 'none',
-                    fontFamily: "'Pretendard', sans-serif",
-                    boxSizing: 'border-box', color: '#1A1A1A',
-                    background: '#FAFAF8', outline: 'none',
-                  }}/>
+                  style={{ width: '100%', height: '68px', borderRadius: '12px', border: '1.5px solid #F0EAE0', padding: '10px 14px', fontSize: '14px', resize: 'none', fontFamily: "'Pretendard', sans-serif", boxSizing: 'border-box', color: '#1A1A1A', background: '#FAFAF8', outline: 'none' }}/>
               </div>
 
               {saveMsg && (
