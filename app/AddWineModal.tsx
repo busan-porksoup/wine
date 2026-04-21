@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { recognizeWineLabel } from './actions'
 
 const WINE_TYPES = [
   { value: 'red',       label: '레드',   emoji: '🍷' },
@@ -62,6 +61,14 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
     setAiMsg('')
+
+    // 파일 수정일에서 날짜 추출
+    const lastModified = new Date(file.lastModified)
+    const yyyy = lastModified.getFullYear()
+    const mm = String(lastModified.getMonth() + 1).padStart(2, '0')
+    const dd = String(lastModified.getDate()).padStart(2, '0')
+    const dateStr = `${yyyy}-${mm}-${dd}`
+    setForm(prev => ({ ...prev, drunk_at: dateStr }))
   }
 
   async function handleRecognize() {
@@ -81,7 +88,17 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
         reader.readAsDataURL(imageFile)
       })
 
-      const result = await recognizeWineLabel(base64, imageFile.type)
+      const res = await fetch('/api/recognize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64,
+          mediaType: imageFile.type,
+          exifDate: form.drunk_at,
+        }),
+      })
+
+      const result = await res.json()
 
       if (!result.success) {
         setError('AI 인식 실패: ' + result.error)
@@ -95,7 +112,7 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
           region: d.region || '',
           vintage_year: d.vintage_year ? String(d.vintage_year) : '',
           wine_type: d.wine_type || 'red',
-          drunk_at: form.drunk_at,
+          drunk_at: d.drunk_at || form.drunk_at,
           grape_variety: d.grape_variety || '',
         })
         setAiMsg('✓ AI 인식 완료! 내용을 확인하고 수정해주세요.')
