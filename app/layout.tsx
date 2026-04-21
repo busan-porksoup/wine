@@ -4,8 +4,8 @@ import '@fontsource/pretendard/700.css'
 import './globals.css'
 
 export const metadata = {
-  title: 'JW WineLog',
-  description: '우리의 와인 일지',
+  title: 'JW Wine Archive',
+  description: '기록으로 완성되는 우리의 셀러',
 }
 
 export default function RootLayout({
