@@ -12,8 +12,37 @@ const TYPE_BADGE: Record<string, { emoji: string; label: string; bg: string; col
   dessert:  { emoji: '🍯', label: '디저트', bg: 'rgba(200,132,90,0.1)', color: '#A05A30' },
 }
 
+const WINE_TYPES = [
+  { value: 'red',       label: '레드',   emoji: '🍷' },
+  { value: 'white',     label: '화이트', emoji: '🥂' },
+  { value: 'sparkling', label: '샴페인', emoji: '🍾' },
+  { value: 'rosé',      label: '로제',   emoji: '🌸' },
+  { value: 'dessert',   label: '디저트', emoji: '🍯' },
+]
+
+const FOOD_KEYWORDS = [
+  { group: '육류',     items: ['소고기', '돼지고기', '양고기', '닭고기'] },
+  { group: '해산물',   items: ['해산물', '생선', '굴'] },
+  { group: '패스트푸드', items: ['피자', '햄버거', '파스타'] },
+  { group: '기타',     items: ['치즈', '샐러드', '디저트'] },
+]
+
 const STAR_COLOR = '#D4A843'
 const STAR_EMPTY = '#E5DDD0'
+
+const inputStyle = {
+  width: '100%', padding: '10px 12px', borderRadius: '10px',
+  border: '1.5px solid #F0EAE0', fontSize: '13px',
+  fontFamily: "'Pretendard', sans-serif",
+  boxSizing: 'border-box' as const,
+  color: '#1A1A1A', background: '#FAFAF8', outline: 'none',
+}
+
+const labelStyle = {
+  fontSize: '10px', fontWeight: '600' as const, color: '#BBB',
+  letterSpacing: '1px', textTransform: 'uppercase' as const,
+  marginBottom: '6px', display: 'block',
+}
 
 function Stars({ rating, size, onChange }: { rating: number; size: number; onChange?: (v: number) => void }) {
   return (
@@ -54,6 +83,28 @@ export default function Home() {
   const [showAdd, setShowAdd] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  // 편집 필드
+  const [editName, setEditName] = useState('')
+  const [editProducer, setEditProducer] = useState('')
+  const [editCountry, setEditCountry] = useState('')
+  const [editRegion, setEditRegion] = useState('')
+  const [editVintage, setEditVintage] = useState('')
+  const [editWineType, setEditWineType] = useState('')
+  const [editDrunkAt, setEditDrunkAt] = useState('')
+  const [editGrapeVariety, setEditGrapeVariety] = useState('')
+
+  // 페어링
+  const [selectedFoods, setSelectedFoods] = useState<string[]>([])
+  const [foodOpen, setFoodOpen] = useState(false)
+  const [customFood, setCustomFood] = useState('')
+
+  // 이미지 뷰어
+  const [imageViewerOpen, setImageViewerOpen] = useState(false)
+
+  // 테이스팅 노트
+  const [tastingTags, setTastingTags] = useState<string[]>([])
+  const [tastingLoading, setTastingLoading] = useState(false)
+
   const avgRating =
     ratingJ > 0 && ratingW > 0 ? Math.round((ratingJ + ratingW) / 2 * 10) / 10
     : ratingJ > 0 ? ratingJ
@@ -83,7 +134,64 @@ export default function Home() {
     }
     setRatingJ(wine.rating || 0)
     setRatingW(wine.rating || 0)
+    setEditName(wine.name || '')
+    setEditProducer(wine.producer || '')
+    setEditCountry(wine.country || '')
+    setEditRegion(wine.region || '')
+    setEditVintage(wine.vintage_year ? String(wine.vintage_year) : '')
+    setEditWineType(wine.wine_type || 'red')
+    setEditDrunkAt(wine.drunk_at || '')
+    setEditGrapeVariety(Array.isArray(wine.grape_variety) ? wine.grape_variety.join(', ') : wine.grape_variety || '')
+    setSelectedFoods(wine.food_pairings || [])
+    setFoodOpen(false)
+    setCustomFood('')
+    setTastingTags(wine.tasting_tags || [])
     setSaveMsg('')
+    setImageViewerOpen(false)
+
+    // 테이스팅 노트가 없으면 자동 생성
+    if (!wine.tasting_tags || wine.tasting_tags.length === 0) {
+      generateTastingNotes(wine)
+    }
+  }
+
+  async function generateTastingNotes(wine: any) {
+    setTastingLoading(true)
+    try {
+      const res = await fetch('/api/tasting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: wine.name,
+          producer: wine.producer,
+          country: wine.country,
+          region: wine.region,
+          grape_variety: wine.grape_variety,
+          vintage_year: wine.vintage_year,
+          wine_type: wine.wine_type,
+        }),
+      })
+      const result = await res.json()
+      if (result.success && result.tags) {
+        setTastingTags(result.tags)
+        // DB에도 저장
+        await supabase.from('wines').update({ tasting_tags: result.tags }).eq('id', wine.id)
+      }
+    } catch {}
+    setTastingLoading(false)
+  }
+
+  function toggleFood(food: string) {
+    setSelectedFoods(prev =>
+      prev.includes(food) ? prev.filter(f => f !== food) : [...prev, food]
+    )
+  }
+
+  function addCustomFood() {
+    const f = customFood.trim()
+    if (!f || selectedFoods.includes(f)) return
+    setSelectedFoods(prev => [...prev, f])
+    setCustomFood('')
   }
 
   async function handleSave() {
@@ -93,6 +201,16 @@ export default function Home() {
     const { error } = await supabase
       .from('wines')
       .update({
+        name: editName,
+        producer: editProducer || null,
+        country: editCountry || null,
+        region: editRegion || null,
+        vintage_year: editVintage ? parseInt(editVintage) : null,
+        wine_type: editWineType,
+        drunk_at: editDrunkAt || null,
+        grape_variety: editGrapeVariety ? editGrapeVariety.split(',').map((s: string) => s.trim()) : null,
+        food_pairings: selectedFoods.length > 0 ? selectedFoods : null,
+        tasting_tags: tastingTags.length > 0 ? tastingTags : null,
         memo: JSON.stringify({ jaehyuk: memoJ, wonwoo: memoW }),
         rating: avgRating > 0 ? avgRating : null,
       })
@@ -115,12 +233,7 @@ export default function Home() {
     if (!selected) return
     if (!confirm(`"${selected.name}" 을 삭제할까요?`)) return
     setDeleting(true)
-
-    const { error } = await supabase
-      .from('wines')
-      .delete()
-      .eq('id', selected.id)
-
+    const { error } = await supabase.from('wines').delete().eq('id', selected.id)
     setDeleting(false)
     if (error) {
       setSaveMsg('삭제 실패 😢 ' + error.message)
@@ -239,6 +352,28 @@ export default function Home() {
         />
       )}
 
+      {/* 이미지 전체화면 뷰어 */}
+      {imageViewerOpen && selected?.image_url && (
+        <div onClick={() => setImageViewerOpen(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 400,
+        }}>
+          <button onClick={() => setImageViewerOpen(false)} style={{
+            position: 'absolute', top: '20px', right: '20px',
+            background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%',
+            width: '40px', height: '40px', color: '#fff', fontSize: '20px',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>✕</button>
+          <img
+            src={selected.image_url}
+            alt={selected.name}
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '12px' }}
+          />
+        </div>
+      )}
+
       {/* 상세 모달 */}
       {selected && (
         <div onClick={() => setSelected(null)} style={{
@@ -248,14 +383,30 @@ export default function Home() {
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: '#fff', borderRadius: '24px 24px 0 0',
-            width: '100%', maxWidth: '430px', maxHeight: '88vh', overflowY: 'auto',
+            width: '100%', maxWidth: '430px', maxHeight: '92vh', overflowY: 'auto',
           }}>
-            <div style={{ height: '200px', background: selected.image_url ? 'none' : 'linear-gradient(160deg, #1A1A2E, #4A2040)', borderRadius: '24px 24px 0 0', position: 'relative', overflow: 'hidden' }}>
+
+            {/* 사진 영역 — 탭하면 전체화면 */}
+            <div
+              onClick={() => selected.image_url && setImageViewerOpen(true)}
+              style={{
+                height: '220px',
+                background: selected.image_url ? 'none' : 'linear-gradient(160deg, #1A1A2E, #4A2040)',
+                borderRadius: '24px 24px 0 0', position: 'relative', overflow: 'hidden',
+                cursor: selected.image_url ? 'zoom-in' : 'default',
+              }}>
               {selected.image_url && (
                 <img src={selected.image_url} alt={selected.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
               )}
+              {selected.image_url && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', background: 'rgba(0,0,0,0.35)', padding: '4px 10px', borderRadius: '20px', fontWeight: '600' }}>
+                    🔍 탭하여 크게 보기
+                  </span>
+                </div>
+              )}
               <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.3)' }}/>
-              <button onClick={handleDelete} disabled={deleting} style={{
+              <button onClick={e => { e.stopPropagation(); handleDelete() }} disabled={deleting} style={{
                 position: 'absolute', top: 16, right: 16,
                 background: 'rgba(0,0,0,0.4)', border: 'none',
                 borderRadius: '20px', padding: '6px 12px',
@@ -268,17 +419,174 @@ export default function Home() {
                 <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '20px', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: '600' }}>
                   {badge?.emoji} {badge?.label}
                 </span>
-                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>{selected.drunk_at}</span>
               </div>
             </div>
 
             <div style={{ padding: '20px 24px 40px' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1A1A1A', margin: '0 0 4px' }}>{selected.name}</h2>
-              <p style={{ color: '#AAA', fontSize: '13px', margin: '0 0 2px' }}>{selected.producer}</p>
-              <p style={{ color: '#AAA', fontSize: '13px', margin: '0 0 16px' }}>{selected.region}, {selected.country} · {selected.vintage_year}</p>
 
-              <div style={{ height: 1, background: '#F0EAE0', marginBottom: '20px' }}/>
+              {/* ── 편집 가능한 와인 정보 ── */}
+              <div style={{ marginBottom: '8px' }}>
+                <span style={labelStyle}>와인 종류</span>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                  {WINE_TYPES.map(t => (
+                    <button key={t.value} onClick={() => setEditWineType(t.value)} style={{
+                      padding: '5px 10px', borderRadius: '20px',
+                      border: editWineType === t.value ? '2px solid #8B2635' : '1.5px solid #F0EAE0',
+                      background: editWineType === t.value ? 'rgba(139,38,53,0.08)' : '#FAFAF8',
+                      color: editWineType === t.value ? '#8B2635' : '#AAA',
+                      fontSize: '11px', fontWeight: '600', cursor: 'pointer',
+                      fontFamily: "'Pretendard', sans-serif",
+                    }}>{t.emoji} {t.label}</button>
+                  ))}
+                </div>
+              </div>
 
+              <div style={{ marginBottom: '10px' }}>
+                <span style={labelStyle}>와인 이름</span>
+                <input value={editName} onChange={e => setEditName(e.target.value)} style={inputStyle} />
+              </div>
+              <div style={{ marginBottom: '10px' }}>
+                <span style={labelStyle}>생산자</span>
+                <input value={editProducer} onChange={e => setEditProducer(e.target.value)} style={inputStyle} />
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <span style={labelStyle}>국가</span>
+                  <input value={editCountry} onChange={e => setEditCountry(e.target.value)} style={inputStyle} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <span style={labelStyle}>지역</span>
+                  <input value={editRegion} onChange={e => setEditRegion(e.target.value)} style={inputStyle} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <span style={labelStyle}>빈티지</span>
+                  <input value={editVintage} onChange={e => setEditVintage(e.target.value)} type="number" style={inputStyle} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <span style={labelStyle}>마신 날짜</span>
+                  <input value={editDrunkAt} onChange={e => setEditDrunkAt(e.target.value)} style={inputStyle} />
+                </div>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <span style={labelStyle}>품종</span>
+                <input value={editGrapeVariety} onChange={e => setEditGrapeVariety(e.target.value)} placeholder="예) Pinot Noir, Cabernet" style={inputStyle} />
+              </div>
+
+              <div style={{ height: 1, background: '#F0EAE0', marginBottom: '16px' }}/>
+
+              {/* ── 테이스팅 노트 ── */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '11px', fontWeight: '600', color: '#AAA', marginBottom: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                  🍇 Tasting Notes
+                </div>
+                {tastingLoading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', borderRadius: '12px', background: '#F7F3EE' }}>
+                    <span style={{ fontSize: '14px' }}>✨</span>
+                    <span style={{ fontSize: '12px', color: '#AAA', fontWeight: '600' }}>AI가 테이스팅 노트를 생성 중...</span>
+                  </div>
+                ) : tastingTags.length > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {tastingTags.map((tag, i) => (
+                      <span key={i} style={{
+                        padding: '5px 12px', borderRadius: '20px',
+                        background: i % 3 === 0 ? 'rgba(139,38,53,0.08)' : i % 3 === 1 ? 'rgba(107,142,58,0.08)' : 'rgba(58,127,160,0.08)',
+                        color: i % 3 === 0 ? '#8B2635' : i % 3 === 1 ? '#4A6B2A' : '#2A6B8B',
+                        fontSize: '12px', fontWeight: '600',
+                        border: `1px solid ${i % 3 === 0 ? 'rgba(139,38,53,0.15)' : i % 3 === 1 ? 'rgba(107,142,58,0.15)' : 'rgba(58,127,160,0.15)'}`,
+                      }}>{tag}</span>
+                    ))}
+                    <button onClick={() => generateTastingNotes(selected)} style={{
+                      padding: '5px 10px', borderRadius: '20px',
+                      background: 'transparent', border: '1px dashed #DDD',
+                      color: '#BBB', fontSize: '11px', cursor: 'pointer',
+                      fontFamily: "'Pretendard', sans-serif",
+                    }}>↺ 재생성</button>
+                  </div>
+                ) : (
+                  <button onClick={() => generateTastingNotes(selected)} style={{
+                    padding: '8px 14px', borderRadius: '10px',
+                    background: 'rgba(139,38,53,0.06)', border: '1px dashed rgba(139,38,53,0.3)',
+                    color: '#8B2635', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                    fontFamily: "'Pretendard', sans-serif",
+                  }}>✨ AI 테이스팅 노트 생성</button>
+                )}
+              </div>
+
+              <div style={{ height: 1, background: '#F0EAE0', marginBottom: '16px' }}/>
+
+              {/* ── 페어링 음식 ── */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '11px', fontWeight: '600', color: '#AAA', marginBottom: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                  🍽 Food Pairing
+                </div>
+
+                {/* 선택된 칩 */}
+                {selectedFoods.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                    {selectedFoods.map(food => (
+                      <span key={food} onClick={() => toggleFood(food)} style={{
+                        padding: '5px 10px', borderRadius: '20px',
+                        background: 'rgba(107,142,58,0.1)', border: '1.5px solid rgba(107,142,58,0.3)',
+                        color: '#4A6B2A', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                      }}>{food} ✕</span>
+                    ))}
+                  </div>
+                )}
+
+                {/* 콤보박스 토글 */}
+                <button onClick={() => setFoodOpen(v => !v)} style={{
+                  padding: '8px 14px', borderRadius: '10px',
+                  background: '#F7F3EE', border: '1.5px solid #F0EAE0',
+                  color: '#888', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                  fontFamily: "'Pretendard', sans-serif",
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                }}>
+                  + 음식 추가 {foodOpen ? '▲' : '▼'}
+                </button>
+
+                {foodOpen && (
+                  <div style={{ marginTop: '10px', padding: '14px', borderRadius: '14px', background: '#F7F3EE', border: '1px solid #F0EAE0' }}>
+                    {FOOD_KEYWORDS.map(group => (
+                      <div key={group.group} style={{ marginBottom: '10px' }}>
+                        <div style={{ fontSize: '10px', color: '#BBB', fontWeight: '600', marginBottom: '6px', letterSpacing: '0.5px' }}>{group.group}</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {group.items.map(food => (
+                            <span key={food} onClick={() => toggleFood(food)} style={{
+                              padding: '5px 10px', borderRadius: '20px',
+                              background: selectedFoods.includes(food) ? 'rgba(107,142,58,0.12)' : '#fff',
+                              border: selectedFoods.includes(food) ? '1.5px solid rgba(107,142,58,0.4)' : '1.5px solid #EEE',
+                              color: selectedFoods.includes(food) ? '#4A6B2A' : '#666',
+                              fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                            }}>{food}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    {/* 직접 입력 */}
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                      <input
+                        value={customFood}
+                        onChange={e => setCustomFood(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && addCustomFood()}
+                        placeholder="직접 입력..."
+                        style={{ ...inputStyle, flex: 1, padding: '8px 10px', fontSize: '12px' }}
+                      />
+                      <button onClick={addCustomFood} style={{
+                        padding: '8px 12px', borderRadius: '10px',
+                        background: '#8B2635', border: 'none',
+                        color: '#fff', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                        fontFamily: "'Pretendard', sans-serif",
+                      }}>추가</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ height: 1, background: '#F0EAE0', marginBottom: '16px' }}/>
+
+              {/* ── 별점 ── */}
               <div style={{ marginBottom: '20px' }}>
                 <div style={{ fontSize: '11px', fontWeight: '600', color: '#AAA', marginBottom: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>Total Rating</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -291,6 +599,7 @@ export default function Home() {
 
               <div style={{ height: 1, background: '#F0EAE0', marginBottom: '20px' }}/>
 
+              {/* ── 개인 메모 ── */}
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                   <Avatar name="재혁" gradient="linear-gradient(135deg, #8B2635, #C0394D)" />
