@@ -4,7 +4,7 @@ import '@fontsource/pretendard/700.css'
 import './globals.css'
 
 export const metadata = {
-  title: 'JW Wine Archive',
+  title: 'JW Wine Archive🍷',
   description: '기록으로 완성되는 우리의 셀러',
 }
 
