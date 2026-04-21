@@ -65,7 +65,7 @@ export default function Home() {
     const { data, error } = await supabase
       .from('wines')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('drunk_at', { ascending: false })
     if (!error && data) setWines(data)
   }
 
