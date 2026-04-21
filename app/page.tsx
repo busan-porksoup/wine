@@ -227,8 +227,8 @@ export default function Home() {
         <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(139,38,53,0.15)' }}/>
         <div style={{ position: 'absolute', bottom: -20, left: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(168,200,232,0.08)' }}/>
         <div style={{ position: 'relative' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#fff', margin: '0 0 4px', letterSpacing: '-0.5px' }}>JW WineLog</h1>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>우리의 와인 일지</p>
+          <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#fff', margin: '0 0 4px', letterSpacing: '-0.5px' }}>JW Wine Archive 🍷</h1>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>기록으로 완성되는 우리의 셀러</p>
         </div>
       </div>
 
