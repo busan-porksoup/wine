@@ -277,7 +277,7 @@ export default function Home() {
                     style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: 'pointer', border: '1px solid #F0EAE0' }}>
                     <div style={{ height: '140px', position: 'relative', background: wine.image_url ? 'none' : 'linear-gradient(135deg, #2D1B35 0%, #4A2040 100%)' }}>
                       {wine.image_url && <img src={wine.image_url} alt={wine.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>}
-                      <div style={{ position: 'absolute', top: 8, left: 8, fontSize: '10px', fontWeight: '600', color: 'rgba(255,255,255,0.9)', background: 'rgba(0,0,0,0.35)', padding: '2px 7px', borderRadius: '6px' }}>
+                      <div style={{ position: 'absolute', top: 8, left: 8, fontSize: '11px', fontWeight: '700', color: '#fff', background: 'rgba(0,0,0,0.55)', padding: '3px 8px', borderRadius: '6px', letterSpacing: '0.3px' }}>
                         {wine.drunk_at}
                       </div>
                     </div>
@@ -361,7 +361,7 @@ export default function Home() {
 
                   {/* 테이스팅 노트 */}
                   <div style={{ marginBottom: '16px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: '600', color: '#AAA', marginBottom: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>🍇 Tasting Notes</div>
+                    <div style={{ fontSize: '11px', fontWeight: '600', color: '#AAA', marginBottom: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>📋 Tasting Notes</div>
                     {tastingLoading ? (
                       <div style={{ fontSize: '12px', color: '#AAA', padding: '10px', borderRadius: '10px', background: '#F7F3EE' }}>✨ AI가 테이스팅 노트를 생성 중...</div>
                     ) : tastingTags.length > 0 ? (
@@ -504,7 +504,7 @@ export default function Home() {
 
                   {/* 테이스팅 재생성 */}
                   <div style={{ marginBottom: '20px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: '600', color: '#AAA', marginBottom: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>🍇 Tasting Notes</div>
+                    <div style={{ fontSize: '11px', fontWeight: '600', color: '#AAA', marginBottom: '10px', letterSpacing: '1px', textTransform: 'uppercase' }}>📋 Tasting Notes</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
                       {tastingTags.map((tag, i) => (
                         <span key={i} style={{ padding: '5px 12px', borderRadius: '20px', background: i % 3 === 0 ? 'rgba(139,38,53,0.08)' : i % 3 === 1 ? 'rgba(107,142,58,0.08)' : 'rgba(58,127,160,0.08)', color: i % 3 === 0 ? '#8B2635' : i % 3 === 1 ? '#4A6B2A' : '#2A6B8B', fontSize: '12px', fontWeight: '600' }}>{tag}</span>
