@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import AddWineModal from './AddWineModal'
 import Analytics from './Analytics'
@@ -67,6 +67,54 @@ function Avatar({ name, gradient }: { name: string; gradient: string }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: '11px', color: '#fff', fontWeight: '700', letterSpacing: '-0.5px',
     }}>{name}</div>
+  )
+}
+
+// 스크롤 진입 감지 훅
+function useScrollVisible(threshold = 0.1) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect() } },
+      { threshold }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+  return { ref, visible }
+}
+
+// 애니메이션 와인 카드
+function WineCard({ wine, index, onClick }: { wine: any; index: number; onClick: () => void }) {
+  const { ref, visible } = useScrollVisible()
+  const b = TYPE_BADGE[wine.wine_type]
+  const delay = (index % 2) * 80 // 2열 교차 딜레이
+
+  return (
+    <div ref={ref} onClick={onClick} style={{
+      background: '#fff', borderRadius: '16px', overflow: 'hidden',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: 'pointer', border: '1px solid #F0EAE0',
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.97)',
+      transition: `opacity 0.45s ease ${delay}ms, transform 0.45s ease ${delay}ms`,
+    }}>
+      <div style={{ height: '140px', position: 'relative', background: wine.image_url ? 'none' : 'linear-gradient(135deg, #2D1B35 0%, #4A2040 100%)' }}>
+        {wine.image_url && <img src={wine.image_url} alt={wine.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>}
+        <div style={{ position: 'absolute', top: 8, left: 8, fontSize: '11px', fontWeight: '700', color: '#fff', background: 'rgba(0,0,0,0.55)', padding: '3px 8px', borderRadius: '6px', letterSpacing: '0.3px' }}>
+          {wine.drunk_at}
+        </div>
+      </div>
+      <div style={{ padding: '10px 12px 12px' }}>
+        <div style={{ fontSize: '12px', fontWeight: '700', color: '#1A1A1A', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {b?.emoji} {wine.name}
+        </div>
+        <div style={{ fontSize: '10px', color: '#AAA', marginBottom: '8px' }}>{wine.vintage_year} · {wine.region}</div>
+        <Stars rating={wine.rating || 0} size={11} />
+      </div>
+    </div>
   )
 }
 
@@ -326,27 +374,9 @@ export default function Home() {
             </div>
           ) : (
             <div style={{ padding: '8px 16px 100px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              {filteredWines.map(wine => {
-                const b = TYPE_BADGE[wine.wine_type]
-                return (
-                  <div key={wine.id} onClick={() => openDetail(wine)}
-                    style={{ background: '#fff', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: 'pointer', border: '1px solid #F0EAE0' }}>
-                    <div style={{ height: '140px', position: 'relative', background: wine.image_url ? 'none' : 'linear-gradient(135deg, #2D1B35 0%, #4A2040 100%)' }}>
-                      {wine.image_url && <img src={wine.image_url} alt={wine.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>}
-                      <div style={{ position: 'absolute', top: 8, left: 8, fontSize: '11px', fontWeight: '700', color: '#fff', background: 'rgba(0,0,0,0.55)', padding: '3px 8px', borderRadius: '6px', letterSpacing: '0.3px' }}>
-                        {wine.drunk_at}
-                      </div>
-                    </div>
-                    <div style={{ padding: '10px 12px 12px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: '700', color: '#1A1A1A', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {b?.emoji} {wine.name}
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#AAA', marginBottom: '8px' }}>{wine.vintage_year} · {wine.region}</div>
-                      <Stars rating={wine.rating || 0} size={11} />
-                    </div>
-                  </div>
-                )
-              })}
+              {filteredWines.map((wine, index) => (
+                <WineCard key={wine.id} wine={wine} index={index} onClick={() => openDetail(wine)} />
+              ))}
             </div>
           )}
         </>
