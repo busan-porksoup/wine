@@ -77,7 +77,7 @@ export default function Analytics({ wines }: { wines: any[] }) {
   const countryData = Object.entries(
     wines.reduce((acc, w) => { if (w.country) acc[w.country] = (acc[w.country] || 0) + 1; return acc }, {} as Record<string, number>)
   ).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 8)
-    .map(([name, count]) => ({ name: countryWithFlag(name), count }))
+    .map(([name, count]) => ({ name, displayName: countryWithFlag(name), count }))
 
   // 주품종만 카운트
   const grapeData = Object.entries(
@@ -188,17 +188,26 @@ export default function Analytics({ wines }: { wines: any[] }) {
         <div style={{ fontSize: '10px', color: '#CCC', textAlign: 'right', marginTop: '4px' }}>← 좌우로 스크롤</div>
       </>)}
 
-      {/* 국가별 (국기 포함) */}
+      {/* 국가별 (국기 포함) — 커스텀 바 */}
       {countryData.length > 0 && card(<>
         {sectionTitle('🌍 국가별')}
-        <ResponsiveContainer width="100%" height={countryData.length * 36 + 16}>
-          <BarChart data={countryData} layout="vertical" margin={{ left: 8, right: 24, top: 0, bottom: 0 }}>
-            <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
-            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={90} />
-            <Tooltip formatter={(v) => [v + '병', '']} />
-            <Bar dataKey="count" fill="#3A7FA0" radius={[0, 6, 6, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {countryData.map((item, i) => {
+            const max = countryData[0].count as number
+            const pct = Math.round(((item.count as number) / max) * 100)
+            return (
+              <div key={i}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '13px', color: '#333' }}>{item.displayName}</span>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#3A7FA0' }}>{item.count as number}병</span>
+                </div>
+                <div style={{ height: '8px', borderRadius: '4px', background: '#F0EAE0', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, borderRadius: '4px', background: 'linear-gradient(90deg, #3A7FA0, #5BA8C8)', transition: 'width 0.6s ease' }}/>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </>)}
 
       {/* 지역별 */}
