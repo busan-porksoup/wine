@@ -94,9 +94,9 @@ function WineCard({ wine, index, onClick }: { wine: any; index: number; onClick:
   const delay = (index % 2) * 80 // 2열 교차 딜레이
 
   return (
-    <div ref={ref} onClick={onClick} style={{
+    <div ref={ref} onClick={onClick} className="wine-card" style={{
       background: '#fff', borderRadius: '16px', overflow: 'hidden',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.06)', cursor: 'pointer', border: '1px solid #F0EAE0',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid #F0EAE0',
       opacity: visible ? 1 : 0,
       transform: visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.97)',
       transition: `opacity 0.45s ease ${delay}ms, transform 0.45s ease ${delay}ms`,
@@ -306,7 +306,7 @@ export default function Home() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F7F3EE', fontFamily: "'Pretendard', -apple-system, sans-serif", maxWidth: '430px', margin: '0 auto' }}>
+    <div id="app-container" style={{ minHeight: '100vh', background: '#F7F3EE', fontFamily: "'Pretendard', -apple-system, sans-serif", maxWidth: '430px', margin: '0 auto' }}>
 
       {/* 헤더 — 타이틀만 */}
       <div style={{ background: 'linear-gradient(160deg, #1A1A2E 0%, #2D1B35 50%, #4A2040 100%)', padding: '56px 24px 28px', position: 'relative', overflow: 'hidden' }}>
@@ -339,7 +339,7 @@ export default function Home() {
       {/* 탭 */}
       <div style={{ display: 'flex', background: '#fff', borderBottom: '1px solid #F0EAE0', padding: '0 24px' }}>
         {['홈', '분석'].map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)} style={{
+          <button key={tab} onClick={() => setActiveTab(tab)} className="tab-btn" style={{
             padding: '14px 0', marginRight: '24px', background: 'none', border: 'none',
             borderBottom: activeTab === tab ? '2px solid #8B2635' : '2px solid transparent',
             color: activeTab === tab ? '#8B2635' : '#AAA',
@@ -355,7 +355,7 @@ export default function Home() {
           {/* 연도 필터 */}
           <div style={{ padding: '16px 16px 8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {years.map(y => (
-              <button key={y} onClick={() => setYearFilter(y)} style={{
+              <button key={y} onClick={() => setYearFilter(y)} className="year-btn btn-ripple" style={{
                 padding: '7px 16px', borderRadius: '20px',
                 border: yearFilter === y ? '2px solid #8B2635' : '1.5px solid #E0D8D0',
                 background: yearFilter === y ? '#8B2635' : '#fff',
