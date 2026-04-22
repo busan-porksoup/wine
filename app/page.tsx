@@ -104,6 +104,11 @@ export default function Home() {
   const [tastingTags, setTastingTags] = useState<string[]>([])
   const [tastingLoading, setTastingLoading] = useState(false)
 
+  // AI 배너 멘트
+  const [bannerMsg, setBannerMsg] = useState('')
+  const [bannerRec, setBannerRec] = useState('')
+  const [bannerLoading, setBannerLoading] = useState(false)
+
   const avgRating =
     ratingJ > 0 && ratingW > 0 ? Math.round((ratingJ + ratingW) / 2 * 10) / 10
     : ratingJ > 0 ? ratingJ
@@ -125,7 +130,38 @@ export default function Home() {
     if (!error && data) setWines(data)
   }
 
-  useEffect(() => { fetchWines() }, [])
+  useEffect(() => {
+    fetchWines()
+    fetchBanner()
+  }, [])
+
+  async function fetchBanner() {
+    // 하루 1회 캐싱
+    const cacheKey = 'banner_' + new Date().toISOString().slice(0, 10)
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      const { message, recommendation } = JSON.parse(cached)
+      setBannerMsg(message)
+      setBannerRec(recommendation)
+      return
+    }
+    setBannerLoading(true)
+    try {
+      const { data } = await supabase.from('wines').select('*').order('drunk_at', { ascending: false })
+      const res = await fetch('/api/banner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wines: data || [] }),
+      })
+      const result = await res.json()
+      if (result.success) {
+        setBannerMsg(result.message)
+        setBannerRec(result.recommendation)
+        localStorage.setItem(cacheKey, JSON.stringify({ message: result.message, recommendation: result.recommendation }))
+      }
+    } catch {}
+    setBannerLoading(false)
+  }
 
   function openDetail(wine: any) {
     setSelected(wine)
@@ -230,7 +266,25 @@ export default function Home() {
         <div style={{ position: 'absolute', bottom: -20, left: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(168,200,232,0.08)' }}/>
         <div style={{ position: 'relative' }}>
           <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#fff', margin: '0 0 4px', letterSpacing: '-0.5px' }}>JW Wine Archive 🍷</h1>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>기록으로 완성되는 우리의 셀러</p>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', margin: '0 0 16px' }}>기록으로 완성되는 우리의 셀러</p>
+
+          {/* AI 배너 멘트 */}
+          {bannerLoading ? (
+            <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '14px', padding: '12px 14px' }}>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>✨ 오늘의 와인 멘트 준비 중...</div>
+            </div>
+          ) : bannerMsg ? (
+            <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '14px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.85)', lineHeight: '1.6', marginBottom: bannerRec ? '8px' : '0' }}>
+                {bannerMsg}
+              </div>
+              {bannerRec && (
+                <div style={{ fontSize: '11px', color: 'rgba(200,169,81,0.9)', fontStyle: 'italic' }}>
+                  🍾 {bannerRec}
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
       </div>
 
