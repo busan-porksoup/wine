@@ -8,7 +8,7 @@ const client = new Anthropic({
 export async function recognizeWineLabel(imageBase64: string, mediaType: string) {
   try {
     const response = await client.messages.create({
-      model: '(process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6') as string',
+      model: (process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6') as string,
       max_tokens: 1024,
       messages: [
         {

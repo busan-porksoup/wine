@@ -1,5 +1,58 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap');
+/* ============================================
+   JW Wine Archive — Design Tokens (Phase 1)
+   ============================================ */
+:root {
+  /* === FOUNDATION === */
+  --bg-cream:        #F4EFE6;
+  --bg-paper:        #FAF6EE;
 
+  /* === INK === */
+  --ink-bordeaux:    #6B1F2A;
+  --ink-burgundy:    #8C2A3A;
+  --ink-charcoal:    #2A2420;
+  --ink-olive:       #5C6B3F;
+  --ink-ochre:       #B8860B;
+  --ink-sand:        #C8B89A;
+  --ink-mist:        #8A7E6D;
+
+  /* === GLASS === */
+  --glass-light:     rgba(250, 246, 238, 0.55);
+  --glass-medium:    rgba(250, 246, 238, 0.72);
+  --glass-strong:    rgba(250, 246, 238, 0.88);
+  --glass-border:    rgba(255, 255, 255, 0.35);
+
+  /* === SHADOW === */
+  --shadow-soft:     0 4px 24px rgba(107, 31, 42, 0.06);
+  --shadow-lift:     0 12px 40px rgba(107, 31, 42, 0.12);
+  --shadow-inset:    inset 0 1px 0 rgba(255, 255, 255, 0.40);
+
+  /* === RADIUS === */
+  --radius-sm:       8px;
+  --radius-md:       14px;
+  --radius-lg:       18px;
+  --radius-xl:       28px;
+  --radius-full:     9999px;
+
+  /* === MOTION === */
+  --ease-out-soft:   cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in-out:     cubic-bezier(0.45, 0.00, 0.15, 1);
+  --dur-fast:        180ms;
+  --dur-base:        280ms;
+  --dur-slow:        520ms;
+
+  /* === LAYOUT === */
+  --container-max:   430px;
+
+  /* === FONT FALLBACKS ===
+     Variables --font-display and --font-body are injected by next/font/google
+     in layout.tsx. Add Korean + system fallbacks here. */
+  --font-serif:      var(--font-display, 'Cormorant Garamond'), Georgia, serif;
+  --font-sans:       var(--font-body, 'Inter'), 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+/* ============================================
+   RESET
+   ============================================ */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -8,69 +61,164 @@ html, body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  font-family: 'Pretendard', -apple-system, sans-serif;
+  font-family: var(--font-sans);
+  color: var(--ink-charcoal);
+  background-color: var(--bg-cream);
 }
 
-/* ── 배경: 고급 그라데이션 + 포도밭 패턴 ── */
 body {
-  background-color: #1A1520;
-  background-image:
-    /* 미묘한 노이즈 패턴 */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
-    /* 보일듯말듯 육각형 패턴 */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34z' fill='none' stroke='rgba(139,38,53,0.06)' stroke-width='1'/%3E%3Cpath d='M28 100L0 84V50l28-16 28 16v34z' fill='none' stroke='rgba(139,38,53,0.06)' stroke-width='1'/%3E%3C/svg%3E"),
-    /* 메인 그라데이션 */
-    radial-gradient(ellipse at 20% 20%, rgba(74,32,64,0.9) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 80%, rgba(26,26,46,0.95) 0%, transparent 60%),
-    radial-gradient(ellipse at 50% 50%, rgba(45,27,53,1) 0%, #1A1520 100%);
+  /* fallback background color — bg-vineyard sits above this */
+  background: var(--bg-cream);
 }
 
-/* ── 앱 컨테이너 ── */
+/* ============================================
+   BACKGROUND LAYER SYSTEM (Layer 0 + Layer 1)
+   ============================================ */
+.bg-vineyard {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  /* background-image is set inline in layout.tsx (random per request) */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--bg-cream);
+  filter: saturate(0.88) brightness(1.02);
+  will-change: transform;
+  pointer-events: none;
+}
+
+.bg-wash {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: rgba(244, 239, 230, 0.55);
+  pointer-events: none;
+}
+
+/* On desktop the photo can breathe full-width */
+@media (min-width: 768px) {
+  .bg-wash {
+    background: rgba(244, 239, 230, 0.45);
+  }
+}
+
+/* ============================================
+   GLASS CARD SYSTEM (Layer 2)
+   ============================================ */
+.glass-card {
+  background: var(--glass-medium);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-soft), var(--shadow-inset);
+  border-radius: var(--radius-lg);
+}
+
+.glass-card--light {
+  background: var(--glass-light);
+}
+
+.glass-card--strong {
+  background: var(--glass-strong);
+  backdrop-filter: blur(28px) saturate(1.2);
+  -webkit-backdrop-filter: blur(28px) saturate(1.2);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-card,
+  .glass-card--light,
+  .glass-card--strong {
+    background: var(--glass-strong);
+  }
+}
+
+/* ============================================
+   APP CONTAINER — mobile-first centered column
+   ============================================ */
 #app-container {
-  max-width: 430px;
+  position: relative;
+  z-index: 2;
+  max-width: var(--container-max);
   margin: 0 auto;
   min-height: 100vh;
-  background: #F7F3EE;
-  position: relative;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,0.05),
-    0 25px 80px rgba(0,0,0,0.6),
-    0 0 120px rgba(139,38,53,0.15);
+  background: transparent;
 }
 
-/* PC에서 앱 양쪽 여백 장식 */
-@media (min-width: 500px) {
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(circle at 15% 50%, rgba(139,38,53,0.08) 0%, transparent 50%),
-      radial-gradient(circle at 85% 50%, rgba(58,127,160,0.06) 0%, transparent 50%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  #app-container {
-    margin: 0 auto;
-    border-radius: 0;
-  }
+/* ============================================
+   TYPOGRAPHY SCALE
+   ============================================ */
+.type-display-1 {
+  font-family: var(--font-serif);
+  font-size: 56px;
+  line-height: 1.05;
+  font-style: italic;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+.type-display-2 {
+  font-family: var(--font-serif);
+  font-size: 40px;
+  line-height: 1.10;
+  font-style: italic;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+.type-title-lg {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  line-height: 1.20;
+  font-style: italic;
+  font-weight: 400;
+}
+.type-title-md {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  line-height: 1.30;
+  font-weight: 400;
+}
+.type-body {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+.type-caption {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.40;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.type-micro {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1.30;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-/* ── 와인 카드 호버 ── */
+/* ============================================
+   LEGACY INTERACTIONS (kept from prior design)
+   — color values updated to bordeaux palette
+   ============================================ */
 .wine-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform var(--dur-base) var(--ease-out-soft),
+              box-shadow var(--dur-base) var(--ease-out-soft);
   cursor: pointer;
 }
-.wine-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.14) !important;
+@media (hover: hover) {
+  .wine-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lift), var(--shadow-inset) !important;
+  }
 }
 .wine-card:active {
-  transform: translateY(0) scale(0.98);
+  transform: translateY(0) scale(0.99);
 }
 
-/* ── 버튼 ripple 효과 ── */
 .btn-ripple {
   position: relative;
   overflow: hidden;
@@ -79,74 +227,83 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(255,255,255,0.15);
+  background: rgba(107, 31, 42, 0.08);
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--dur-base) ease;
   border-radius: inherit;
 }
-.btn-ripple:hover::after {
-  opacity: 1;
-}
-.btn-ripple:active::after {
-  opacity: 0.3;
-}
+.btn-ripple:hover::after { opacity: 1; }
+.btn-ripple:active::after { opacity: 0.3; }
 
-/* ── 연도 필터 버튼 호버 ── */
 .year-btn {
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform var(--dur-fast) ease,
+              box-shadow var(--dur-fast) ease;
 }
 .year-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(139,38,53,0.2);
+  box-shadow: 0 4px 12px rgba(107, 31, 42, 0.18);
 }
-.year-btn:active {
-  transform: translateY(0);
-}
+.year-btn:active { transform: translateY(0); }
 
-/* ── 탭 버튼 호버 ── */
+/* Tab — italic serif + underline (per design brief 7.1) */
 .tab-btn {
   position: relative;
-  transition: color 0.2s ease;
+  transition: color var(--dur-base) ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 18px;
+  padding: 14px 0;
+  color: var(--ink-mist);
 }
 .tab-btn::after {
   content: '';
   position: absolute;
-  bottom: -1px;
-  left: 0; right: 0;
+  bottom: 8px;
+  left: 0;
+  right: 0;
   height: 2px;
-  background: rgba(139,38,53,0.3);
+  background: var(--ink-bordeaux);
   transform: scaleX(0);
-  transition: transform 0.2s ease;
+  transform-origin: center;
+  transition: transform var(--dur-base) var(--ease-out-soft);
 }
-.tab-btn:hover::after {
+.tab-btn:hover::after,
+.tab-btn[aria-selected='true']::after,
+.tab-btn.is-active::after {
   transform: scaleX(1);
 }
+.tab-btn[aria-selected='true'],
+.tab-btn.is-active {
+  color: var(--ink-bordeaux);
+}
 
-/* ── 모달 배경 blur 강화 ── */
 .modal-backdrop {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 
-/* ── 스크롤바 스타일링 ── */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(139,38,53,0.3);
+  background: rgba(107, 31, 42, 0.25);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139,38,53,0.5);
+  background: rgba(107, 31, 42, 0.45);
 }
 
-/* ── 이미지 로딩 shimmer ── */
+/* ============================================
+   ANIMATIONS
+   ============================================ */
 @keyframes shimmer {
-  0% { background-position: -400px 0; }
+  0%   { background-position: -400px 0; }
   100% { background-position: 400px 0; }
 }
 .img-loading {
@@ -155,28 +312,35 @@ body {
   animation: shimmer 1.5s infinite;
 }
 
-/* ── 바 차트 애니메이션 ── */
 .bar-fill {
   transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.bar-fill:hover {
-  filter: brightness(1.1);
-}
+.bar-fill:hover { filter: brightness(1.05); }
 
-/* ── 페이드인 ── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-in-up {
-  animation: fadeInUp 0.5s ease forwards;
+  animation: fadeInUp var(--dur-slow) var(--ease-out-soft) forwards;
 }
 
-/* ── 헤더 배너 pulse ── */
 @keyframes gentlePulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
+  50%      { opacity: 0.85; }
 }
 .banner-dot {
   animation: gentlePulse 2.5s ease-in-out infinite;
+}
+
+/* ============================================
+   ACCESSIBILITY — reduce motion
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .bg-vineyard { will-change: unset; }
 }

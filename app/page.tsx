@@ -5,11 +5,11 @@ import AddWineModal from './AddWineModal'
 import Analytics from './Analytics'
 
 const TYPE_BADGE: Record<string, { emoji: string; label: string; bg: string; color: string }> = {
-  red:      { emoji: '🍷', label: '레드',   bg: 'rgba(139,38,53,0.1)',  color: '#8B2635' },
-  white:    { emoji: '🥂', label: '화이트', bg: 'rgba(200,169,81,0.1)', color: '#9A7D2E' },
-  sparkling:{ emoji: '🍾', label: '샴페인', bg: 'rgba(100,160,200,0.1)',color: '#3A7FA0' },
-  rosé:     { emoji: '🌸', label: '로제',   bg: 'rgba(220,130,130,0.1)',color: '#B05060' },
-  dessert:  { emoji: '🍯', label: '디저트', bg: 'rgba(200,132,90,0.1)', color: '#A05A30' },
+  red:      { emoji: '🍷', label: '레드',   bg: 'rgba(107,31,42,0.10)', color: '#6B1F2A' },
+  white:    { emoji: '🥂', label: '화이트', bg: 'rgba(92,107,63,0.10)', color: '#5C6B3F' },
+  sparkling:{ emoji: '🍾', label: '샴페인', bg: 'rgba(184,134,11,0.10)',color: '#B8860B' },
+  rosé:     { emoji: '🌸', label: '로제',   bg: 'rgba(196,132,138,0.12)',color: '#A45560' },
+  dessert:  { emoji: '🍯', label: '디저트', bg: 'rgba(184,134,11,0.10)',color: '#A06A1A' },
 }
 
 const WINE_TYPES = [
@@ -27,21 +27,22 @@ const FOOD_KEYWORDS = [
   { group: '기타',       items: ['치즈', '샐러드', '디저트'] },
 ]
 
-const STAR_COLOR = '#D4A843'
-const STAR_EMPTY = '#E5DDD0'
+const STAR_COLOR = '#6B1F2A'
+const STAR_EMPTY = '#E2D8C8'
 
 const inputStyle = {
   width: '100%', padding: '10px 12px', borderRadius: '10px',
-  border: '1.5px solid #F0EAE0', fontSize: '13px',
-  fontFamily: "'Pretendard', sans-serif",
+  border: '1.5px solid rgba(200,184,154,0.5)', fontSize: '13px',
+  fontFamily: "var(--font-sans)",
   boxSizing: 'border-box' as const,
-  color: '#1A1A1A', background: '#FAFAF8', outline: 'none',
+  color: '#2A2420', background: 'rgba(250,246,238,0.85)', outline: 'none',
 }
 
 const labelStyle = {
-  fontSize: '10px', fontWeight: '600' as const, color: '#BBB',
-  letterSpacing: '1px', textTransform: 'uppercase' as const,
+  fontSize: '10px', fontWeight: '600' as const, color: '#8A7E6D',
+  letterSpacing: '0.14em', textTransform: 'uppercase' as const,
   marginBottom: '6px', display: 'block',
+  fontFamily: 'var(--font-sans)',
 }
 
 function Stars({ rating, size, onChange }: { rating: number; size: number; onChange?: (v: number) => void }) {
@@ -94,24 +95,23 @@ function WineCard({ wine, index, onClick }: { wine: any; index: number; onClick:
   const delay = (index % 2) * 80 // 2열 교차 딜레이
 
   return (
-    <div ref={ref} onClick={onClick} className="wine-card" style={{
-      background: '#fff', borderRadius: '16px', overflow: 'hidden',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid #F0EAE0',
+    <div ref={ref} onClick={onClick} className="wine-card glass-card" style={{
+      overflow: 'hidden',
       opacity: visible ? 1 : 0,
       transform: visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.97)',
       transition: `opacity 0.45s ease ${delay}ms, transform 0.45s ease ${delay}ms`,
     }}>
-      <div style={{ height: '140px', position: 'relative', background: wine.image_url ? 'none' : 'linear-gradient(135deg, #2D1B35 0%, #4A2040 100%)' }}>
+      <div style={{ height: '140px', position: 'relative', background: wine.image_url ? 'none' : 'linear-gradient(135deg, rgba(107,31,42,0.85) 0%, rgba(140,42,58,0.85) 100%)' }}>
         {wine.image_url && <img src={wine.image_url} alt={wine.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>}
-        <div style={{ position: 'absolute', top: 8, left: 8, fontSize: '11px', fontWeight: '700', color: '#fff', background: 'rgba(0,0,0,0.55)', padding: '3px 8px', borderRadius: '6px', letterSpacing: '0.3px' }}>
+        <div className="type-micro" style={{ position: 'absolute', top: 8, left: 8, color: '#fff', background: 'rgba(42,36,32,0.55)', padding: '3px 8px', borderRadius: '6px' }}>
           {wine.drunk_at}
         </div>
       </div>
-      <div style={{ padding: '10px 12px 12px' }}>
-        <div style={{ fontSize: '12px', fontWeight: '700', color: '#1A1A1A', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      <div style={{ padding: '12px 14px 14px' }}>
+        <div className="type-title-md" style={{ fontStyle: 'italic', color: '#2A2420', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '15px' }}>
           {b?.emoji} {wine.name}
         </div>
-        <div style={{ fontSize: '10px', color: '#AAA', marginBottom: '8px' }}>{wine.vintage_year} · {wine.region}</div>
+        <div className="type-micro" style={{ color: '#8A7E6D', marginBottom: '8px' }}>{wine.vintage_year} · {wine.region}</div>
         <Stars rating={wine.rating || 0} size={11} />
       </div>
     </div>
@@ -306,46 +306,48 @@ export default function Home() {
   }
 
   return (
-    <div id="app-container" style={{ minHeight: '100vh', background: '#F7F3EE', fontFamily: "'Pretendard', -apple-system, sans-serif", maxWidth: '430px', margin: '0 auto' }}>
+    <div id="app-container">
 
-      {/* 헤더 — 타이틀만 */}
-      <div style={{ background: 'linear-gradient(160deg, #1A1A2E 0%, #2D1B35 50%, #4A2040 100%)', padding: '56px 24px 28px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(139,38,53,0.15)' }}/>
-        <div style={{ position: 'absolute', bottom: -20, left: -20, width: 120, height: 120, borderRadius: '50%', background: 'rgba(168,200,232,0.08)' }}/>
-        <div style={{ position: 'relative' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#fff', margin: '0 0 4px', letterSpacing: '-0.5px' }}>JW Wine Archive 🍷</h1>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', margin: '0 0 16px' }}>기록으로 완성되는 우리의 셀러</p>
+      {/* 헤더 — 글래스 X, 사진 위 텍스트만 */}
+      <div style={{ padding: '64px 24px 28px', position: 'relative' }}>
+        <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '6px' }}>JAEHYEOK &amp; WONWOO</div>
+        <h1 className="type-display-1" style={{ color: 'var(--ink-charcoal)', margin: '0 0 6px' }}>
+          Wine Archive<span style={{ color: 'var(--ink-bordeaux)' }}>.</span>
+        </h1>
+        <p className="type-body" style={{ fontStyle: 'italic', color: 'var(--ink-mist)', margin: '0 0 18px' }}>
+          기록으로 완성되는 우리의 셀러
+        </p>
 
-          {/* AI 배너 멘트 */}
-          {bannerLoading ? (
-            <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '14px', padding: '12px 14px' }}>
-              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>✨ 오늘의 와인 멘트 준비 중...</div>
+        {/* AI 배너 멘트 — 글래스 카드 */}
+        {bannerLoading ? (
+          <div className="glass-card glass-card--light" style={{ padding: '14px 16px' }}>
+            <div className="type-micro" style={{ color: 'var(--ink-mist)' }}>✨ 오늘의 와인 멘트 준비 중...</div>
+          </div>
+        ) : bannerMsg ? (
+          <div className="glass-card glass-card--light" style={{ padding: '14px 16px' }}>
+            <div className="type-body" style={{ color: 'var(--ink-charcoal)', lineHeight: '1.6', marginBottom: bannerRec ? '8px' : '0' }}>
+              {bannerMsg}
             </div>
-          ) : bannerMsg ? (
-            <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '14px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.85)', lineHeight: '1.6', marginBottom: bannerRec ? '8px' : '0' }}>
-                {bannerMsg}
+            {bannerRec && (
+              <div className="type-micro" style={{ color: 'var(--ink-bordeaux)', fontStyle: 'italic' }}>
+                🍾 {bannerRec}
               </div>
-              {bannerRec && (
-                <div style={{ fontSize: '11px', color: 'rgba(200,169,81,0.9)', fontStyle: 'italic' }}>
-                  🍾 {bannerRec}
-                </div>
-              )}
-            </div>
-          ) : null}
-        </div>
+            )}
+          </div>
+        ) : null}
       </div>
 
-      {/* 탭 */}
-      <div style={{ display: 'flex', background: '#fff', borderBottom: '1px solid #F0EAE0', padding: '0 24px' }}>
+      {/* 탭 — italic serif + underline */}
+      <div style={{ display: 'flex', gap: '28px', padding: '0 24px', borderBottom: '1px solid rgba(200,184,154,0.4)' }}>
         {['홈', '분석'].map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className="tab-btn" style={{
-            padding: '14px 0', marginRight: '24px', background: 'none', border: 'none',
-            borderBottom: activeTab === tab ? '2px solid #8B2635' : '2px solid transparent',
-            color: activeTab === tab ? '#8B2635' : '#AAA',
-            fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-            fontFamily: "'Pretendard', sans-serif",
-          }}>{tab}</button>
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`tab-btn ${activeTab === tab ? 'is-active' : ''}`}
+            aria-selected={activeTab === tab}
+          >
+            {tab === '홈' ? 'Home' : 'Analysis'}
+          </button>
         ))}
       </div>
 
@@ -353,15 +355,18 @@ export default function Home() {
       {activeTab === '홈' && (
         <>
           {/* 연도 필터 */}
-          <div style={{ padding: '16px 16px 8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ padding: '20px 16px 12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {years.map(y => (
               <button key={y} onClick={() => setYearFilter(y)} className="year-btn btn-ripple" style={{
                 padding: '7px 16px', borderRadius: '20px',
-                border: yearFilter === y ? '2px solid #8B2635' : '1.5px solid #E0D8D0',
-                background: yearFilter === y ? '#8B2635' : '#fff',
-                color: yearFilter === y ? '#fff' : '#888',
-                fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-                fontFamily: "'Pretendard', sans-serif",
+                border: yearFilter === y ? '1.5px solid var(--ink-bordeaux)' : '1px solid rgba(200,184,154,0.6)',
+                background: yearFilter === y ? 'var(--ink-bordeaux)' : 'rgba(250,246,238,0.6)',
+                color: yearFilter === y ? '#fff' : 'var(--ink-mist)',
+                fontSize: '12px', fontWeight: '500', cursor: 'pointer',
+                letterSpacing: '0.06em',
+                fontFamily: 'var(--font-sans)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
               }}>{y}</button>
             ))}
           </div>
@@ -369,11 +374,11 @@ export default function Home() {
           {filteredWines.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '300px' }}>
               <div style={{ fontSize: '40px', marginBottom: '16px' }}>🍷</div>
-              <div style={{ fontSize: '15px', fontWeight: '600', color: '#555', marginBottom: '8px' }}>기록된 와인이 없어요</div>
-              <div style={{ fontSize: '13px', color: '#AAA' }}>+ 버튼으로 와인을 기록해보세요</div>
+              <div className="type-title-md" style={{ fontStyle: 'italic', color: 'var(--ink-charcoal)', marginBottom: '8px' }}>기록된 와인이 없어요</div>
+              <div className="type-micro" style={{ color: 'var(--ink-mist)' }}>+ 버튼으로 와인을 기록해보세요</div>
             </div>
           ) : (
-            <div style={{ padding: '8px 16px 100px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ padding: '12px 16px 120px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               {filteredWines.map((wine, index) => (
                 <WineCard key={wine.id} wine={wine} index={index} onClick={() => openDetail(wine)} />
               ))}
@@ -384,15 +389,20 @@ export default function Home() {
 
       {activeTab === '분석' && <Analytics wines={wines} />}
 
-      {/* + 버튼 */}
-      <button onClick={() => setShowAdd(true)} style={{
+      {/* + 버튼 — Bordeaux solid */}
+      <button onClick={() => setShowAdd(true)} aria-label="와인 추가" style={{
         position: 'fixed', bottom: '32px', right: 'calc(50% - 215px + 16px)',
-        width: '52px', height: '52px', borderRadius: '50%',
-        background: 'linear-gradient(135deg, #8B2635, #C0394D)',
-        border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer',
-        boxShadow: '0 4px 20px rgba(139,38,53,0.45)',
+        width: '56px', height: '56px', borderRadius: '50%',
+        background: 'var(--ink-bordeaux)',
+        border: 'none', color: '#fff', fontSize: '26px', cursor: 'pointer',
+        boxShadow: '0 8px 24px rgba(107,31,42,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>+</button>
+        fontWeight: 300, lineHeight: 1, zIndex: 50,
+        transition: 'transform var(--dur-base) var(--ease-out-soft), box-shadow var(--dur-base) var(--ease-out-soft)',
+      }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(107,31,42,0.45), inset 0 1px 0 rgba(255,255,255,0.2)' }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(107,31,42,0.35), inset 0 1px 0 rgba(255,255,255,0.15)' }}
+      >+</button>
 
       {showAdd && <AddWineModal onClose={() => setShowAdd(false)} onSaved={() => fetchWines()} />}
 
@@ -406,8 +416,8 @@ export default function Home() {
 
       {/* 상세 모달 */}
       {selected && (
-        <div onClick={() => setSelected(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100, backdropFilter: 'blur(4px)' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: '430px', maxHeight: '92vh', overflowY: 'auto' }}>
+        <div onClick={() => setSelected(null)} className="modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(42,36,32,0.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-paper)', borderRadius: '28px 28px 0 0', width: '100%', maxWidth: '430px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 -8px 40px rgba(107,31,42,0.10)' }}>
 
             {/* 사진 */}
             <div onClick={() => selected.image_url && setImageViewerOpen(true)} style={{ height: '220px', background: selected.image_url ? 'none' : 'linear-gradient(160deg, #1A1A2E, #4A2040)', borderRadius: '24px 24px 0 0', position: 'relative', overflow: 'hidden', cursor: selected.image_url ? 'zoom-in' : 'default' }}>
@@ -432,10 +442,10 @@ export default function Home() {
               {/* ── 읽기 모드 ── */}
               {!editMode && (
                 <>
-                  <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1A1A1A', margin: '0 0 4px' }}>{selected.name}</h2>
-                  <p style={{ color: '#AAA', fontSize: '13px', margin: '0 0 2px' }}>{selected.producer}</p>
-                  <p style={{ color: '#AAA', fontSize: '13px', margin: '0 0 4px' }}>
-                    {[selected.region, selected.country].filter(Boolean).join(', ')}{selected.vintage_year ? ` · ${selected.vintage_year}` : ''}
+                  <h2 className="type-title-lg" style={{ color: 'var(--ink-charcoal)', margin: '0 0 6px' }}>{selected.name}</h2>
+                  <p className="type-body" style={{ color: 'var(--ink-mist)', margin: '0 0 2px' }}>{selected.producer}</p>
+                  <p className="type-caption" style={{ color: 'var(--ink-sand)', margin: '0 0 6px' }}>
+                    {[selected.region, selected.country].filter(Boolean).join(' · ')}{selected.vintage_year ? ` · ${selected.vintage_year}` : ''}
                   </p>
                   {selected.grape_variety?.length > 0 && (
                     <p style={{ color: '#BBB', fontSize: '12px', margin: '0 0 16px' }}>

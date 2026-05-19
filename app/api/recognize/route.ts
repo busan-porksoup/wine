@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     const { imageBase64, mediaType, exifDate } = await req.json()
 
     const response = await client.messages.create({
-      model: '(process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6') as string',
+      model: (process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6') as string,
       max_tokens: 2048,
       messages: [
         {

@@ -97,7 +97,7 @@ ${anniversaryContext ? `\n특별히 오늘은 ${anniversaryContext}이에요. �
 { "message": "메인 멘트", "recommendation": "추천 와인 또는 시도해볼 것 한 줄" }`
 
     const response = await client.messages.create({
-      model: '(process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6') as string',
+      model: (process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6') as string,
       max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     })
