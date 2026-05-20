@@ -134,12 +134,14 @@ body {
 }
 
 /* ============================================
-   MODAL SHEET — hide scrollbar at rounded corners
+   HIDE SCROLLBARS — editorial aesthetic, no track on right edge
    ============================================ */
-.modal-sheet {
+html, body, .modal-sheet {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
 .modal-sheet::-webkit-scrollbar {
   display: none;
 }
