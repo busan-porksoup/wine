@@ -12,15 +12,14 @@
 - 분석 페이지: 완전 재작성 (italic 영문 숫자, 가로 막대) + 모든 섹션을 `glass-card--light`로 wrap (가독성 개선, Option 1)
 - AddWineModal: 다크 헤더 → cream paper, bordeaux solid 버튼들
 
-## 다음 할 일 — Phase 3 (Motion)
+## Phase 3 (Motion) — 부분 완료
 
-이미 일부 들어가있음 (fade-in-up, glass-card hover). 추가 필요:
-
-- [ ] Vineyard parallax — `bg-vineyard`에 `transform: translateY(scrollY * -0.35)` (rAF 사용)
-- [ ] Scroll-linked blur boost — 스크롤 내려갈수록 배경 blur 6→20px
-- [ ] Number counter — 분석 페이지 "Forty-six" 같은 큰 숫자에 카운트업 애니메이션
-- [ ] Hairline reveal — section divider가 scaleX 0→1로 그려짐
-- [ ] Bottom sheet drag-to-dismiss — `framer-motion` 또는 `@use-gesture/react` 설치 필요
+- [x] Number counter — 분석 페이지 COUNTRIES/REGIONS/AVERAGE 카운트업 (commit 68d09aa)
+- [x] Fade-in-up — 이미 Section 컴포넌트에 적용됨
+- [x] Glass-card hover — 이미 적용됨
+- ~~Vineyard parallax~~ — 영구 제외, 사용자가 원복 요청
+- ~~Scroll-linked blur boost~~ — 영구 제외, 사용자가 원복 요청
+- [ ] Bottom sheet drag-to-dismiss — 디테일 모달이 시트 아니라 무효
 - [ ] View Transitions API — 라우트 변경시 cream 페이드 (Phase 4 라우트 추가 후)
 
 **중요**: 모든 모션은 `@media (prefers-reduced-motion: reduce)`에서 무효화해야 함. [app/globals.css](app/globals.css)에 이미 globals 룰 있음

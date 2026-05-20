@@ -83,9 +83,7 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   background-color: var(--bg-cream);
-  /* baseline blur to match initial JS state and avoid hydration jump */
-  filter: saturate(0.88) brightness(1.02) blur(6px);
-  will-change: transform;
+  filter: saturate(0.88) brightness(1.02);
   pointer-events: none;
 }
 
