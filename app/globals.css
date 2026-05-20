@@ -16,7 +16,7 @@
   --ink-mist:        #8A7E6D;
 
   /* === GLASS === */
-  --glass-light:     rgba(250, 246, 238, 0.55);
+  --glass-light:     rgba(250, 246, 238, 0.80);
   --glass-medium:    rgba(250, 246, 238, 0.72);
   --glass-strong:    rgba(250, 246, 238, 0.88);
   --glass-border:    rgba(255, 255, 255, 0.35);

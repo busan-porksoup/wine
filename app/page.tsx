@@ -160,7 +160,7 @@ function WineCard({ wine, index, onClick }: { wine: any; index: number; onClick:
         }}>
           {wine.name}
         </h3>
-        <div className="type-caption" style={{ color: 'var(--ink-sand)', marginBottom: '8px' }}>
+        <div className="type-caption" style={{ color: 'var(--ink-mist)', marginBottom: '8px' }}>
           {[b?.label, wine.region, wine.country].filter(Boolean).join(' · ')}
         </div>
         <Stars rating={wine.rating || 0} size={13} />
@@ -362,11 +362,11 @@ export default function Home() {
 
       {/* 헤더 — 글래스 X, 사진 위 텍스트만 */}
       <div style={{ padding: '64px 24px 28px', position: 'relative' }}>
-        <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '6px' }}>JAEHYEOK &amp; WONWOO</div>
-        <h1 className="type-display-1" style={{ color: 'var(--ink-charcoal)', margin: '0 0 6px' }}>
+        <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '6px', textShadow: '0 1px 8px rgba(244,239,230,0.7)' }}>JAEHYEOK &amp; WONWOO</div>
+        <h1 className="type-display-1" style={{ color: 'var(--ink-charcoal)', margin: '0 0 6px', textShadow: '0 1px 12px rgba(244,239,230,0.85)' }}>
           Wine Archive<span style={{ color: 'var(--ink-bordeaux)' }}>.</span>
         </h1>
-        <p className="type-body" style={{ fontStyle: 'italic', color: 'var(--ink-mist)', margin: '0 0 18px' }}>
+        <p className="type-body" style={{ fontStyle: 'italic', color: 'var(--ink-charcoal)', margin: '0 0 18px', textShadow: '0 1px 8px rgba(244,239,230,0.7)' }}>
           기록으로 완성되는 우리의 셀러
         </p>
 
