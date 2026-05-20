@@ -84,6 +84,7 @@ body {
   background-repeat: no-repeat;
   background-color: var(--bg-cream);
   filter: saturate(0.88) brightness(1.02);
+  will-change: transform;
   pointer-events: none;
 }
 
