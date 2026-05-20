@@ -78,12 +78,13 @@ body {
   position: fixed;
   inset: 0;
   z-index: 0;
-  /* background-image is set inline in layout.tsx (random per request) */
+  /* background-image is set inline in VineyardBackground.tsx (random per request) */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-color: var(--bg-cream);
-  filter: saturate(0.88) brightness(1.02);
+  /* baseline blur to match initial JS state and avoid hydration jump */
+  filter: saturate(0.88) brightness(1.02) blur(6px);
   will-change: transform;
   pointer-events: none;
 }

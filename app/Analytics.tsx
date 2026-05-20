@@ -73,6 +73,29 @@ function useScrollVisible(threshold = 0.12) {
   return { ref, visible }
 }
 
+function CountUp({ to, decimals = 0, duration = 900 }: { to: number; decimals?: number; duration?: number }) {
+  const [value, setValue] = useState(0)
+  const startedRef = useRef(false)
+  useEffect(() => {
+    if (startedRef.current || to === 0) return
+    startedRef.current = true
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setValue(to); return
+    }
+    const t0 = performance.now()
+    let raf = 0
+    const tick = (now: number) => {
+      const p = Math.min((now - t0) / duration, 1)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setValue(to * eased)
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [to, duration])
+  return <>{decimals > 0 ? value.toFixed(decimals) : Math.floor(value)}</>
+}
+
 function Section({ caption, title, children, delay = 0 }: { caption: string; title?: string; children: React.ReactNode; delay?: number }) {
   const { ref, visible } = useScrollVisible()
   return (
@@ -282,7 +305,7 @@ export default function Analytics({ wines }: { wines: any[] }) {
 
   const ratedCount = wines.filter(w => w.rating).length
   const avgRating = ratedCount > 0
-    ? (wines.reduce((a, w) => a + (w.rating || 0), 0) / ratedCount).toFixed(1) : '—'
+    ? wines.reduce((a, w) => a + (w.rating || 0), 0) / ratedCount : 0
   const countriesCount = new Set(wines.map(w => w.country).filter(Boolean)).size
   const regionsCount = new Set(wines.map(w => w.region).filter(Boolean)).size
 
@@ -299,7 +322,9 @@ export default function Analytics({ wines }: { wines: any[] }) {
           bottles.
         </p>
         <div className="type-micro" style={{ color: 'var(--ink-mist)' }}>
-          AVERAGE · <span className="type-title-md" style={{ fontStyle: 'italic', color: 'var(--ink-bordeaux)', fontSize: '16px', letterSpacing: 0 }}>{avgRating}</span> / 5 ★
+          AVERAGE · <span className="type-title-md" style={{ fontStyle: 'italic', color: 'var(--ink-bordeaux)', fontSize: '16px', letterSpacing: 0 }}>
+            {ratedCount > 0 ? <CountUp to={avgRating} decimals={1} /> : '—'}
+          </span> / 5 ★
         </div>
       </section>
 
@@ -307,11 +332,11 @@ export default function Analytics({ wines }: { wines: any[] }) {
       <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
         <div className="glass-card glass-card--light" style={{ padding: '20px' }}>
           <div className="type-micro" style={{ color: 'var(--ink-mist)', marginBottom: '6px' }}>COUNTRIES</div>
-          <div className="type-display-2" style={{ color: 'var(--ink-charcoal)', fontSize: '40px' }}>{countriesCount}</div>
+          <div className="type-display-2" style={{ color: 'var(--ink-charcoal)', fontSize: '40px' }}><CountUp to={countriesCount} /></div>
         </div>
         <div className="glass-card glass-card--light" style={{ padding: '20px' }}>
           <div className="type-micro" style={{ color: 'var(--ink-mist)', marginBottom: '6px' }}>REGIONS</div>
-          <div className="type-display-2" style={{ color: 'var(--ink-charcoal)', fontSize: '40px' }}>{regionsCount}</div>
+          <div className="type-display-2" style={{ color: 'var(--ink-charcoal)', fontSize: '40px' }}><CountUp to={regionsCount} /></div>
         </div>
       </section>
 
