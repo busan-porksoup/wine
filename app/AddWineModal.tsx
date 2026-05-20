@@ -11,17 +11,18 @@ const WINE_TYPES = [
 ]
 
 const inputStyle = {
-  width: '100%', padding: '12px 14px', borderRadius: '12px',
-  border: '1.5px solid #F0EAE0', fontSize: '14px',
-  fontFamily: "'Pretendard', sans-serif",
+  width: '100%', padding: '12px 14px', borderRadius: 'var(--radius-md)',
+  border: '1px solid rgba(200,184,154,0.5)', fontSize: '14px',
+  fontFamily: 'var(--font-sans)',
   boxSizing: 'border-box' as const,
-  color: '#1A1A1A', background: '#FAFAF8', outline: 'none',
+  color: 'var(--ink-charcoal)', background: 'rgba(250,246,238,0.7)', outline: 'none',
 }
 
 const labelStyle = {
-  fontSize: '11px', fontWeight: '600' as const, color: '#AAA',
-  letterSpacing: '1px', textTransform: 'uppercase' as const,
+  fontSize: '11px', fontWeight: 500 as const, color: 'var(--ink-mist)',
+  letterSpacing: '0.14em', textTransform: 'uppercase' as const,
   marginBottom: '8px', display: 'block',
+  fontFamily: 'var(--font-sans)',
 }
 
 type WineForm = {
@@ -219,85 +220,94 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
   }[s] || '')
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 200, backdropFilter: 'blur(4px)' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: '430px', maxHeight: '90vh', overflowY: 'auto' }}>
+    <div onClick={onClose} className="modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(42,36,32,0.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 200 }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: 'var(--bg-paper)',
+        borderTopLeftRadius: 'var(--radius-xl)', borderTopRightRadius: 'var(--radius-xl)',
+        width: '100%', maxWidth: '430px', maxHeight: '92vh', overflowY: 'auto',
+        boxShadow: '0 -8px 40px rgba(107,31,42,0.18)',
+      }}>
 
         {/* 헤더 */}
-        <div style={{ background: 'linear-gradient(160deg, #1A1A2E, #4A2040)', borderRadius: '24px 24px 0 0', padding: '20px 24px', position: 'relative' }}>
-          <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.3)' }}/>
-          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#fff', margin: '12px 0 12px' }}>새 와인 추가</h2>
+        <div style={{ padding: '24px 24px 16px', position: 'relative', textAlign: 'center' }}>
+          {/* drag handle */}
+          <div style={{ width: 44, height: 4, borderRadius: 2, background: 'var(--ink-sand)', opacity: 0.6, margin: '0 auto 18px' }}/>
 
-          {/* 모드 선택 */}
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '6px' }}>Add New</div>
+          <h2 className="type-display-2" style={{ color: 'var(--ink-charcoal)', margin: '0 0 20px', fontSize: '32px' }}>A new bottle.</h2>
+
+          {/* 모드 선택 — underline pills */}
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
             {(['single', 'multi'] as const).map(m => (
-              <button key={m} onClick={() => setMode(m)} style={{
-                flex: 1, padding: '8px', borderRadius: '10px',
-                border: mode === m ? '2px solid rgba(255,255,255,0.6)' : '1px solid rgba(255,255,255,0.2)',
-                background: mode === m ? 'rgba(255,255,255,0.15)' : 'transparent',
-                color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-                fontFamily: "'Pretendard', sans-serif",
+              <button key={m} onClick={() => setMode(m)} className="type-caption" style={{
+                padding: '8px 16px', borderRadius: 'var(--radius-full)',
+                border: mode === m ? '1.5px solid var(--ink-bordeaux)' : '1px solid rgba(200,184,154,0.5)',
+                background: mode === m ? 'rgba(107,31,42,0.06)' : 'transparent',
+                color: mode === m ? 'var(--ink-bordeaux)' : 'var(--ink-mist)',
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
               }}>
-                {m === 'single' ? '📷 1장 추가' : '📚 여러 장 추가'}
+                {m === 'single' ? '📷 1장' : '📚 여러 장'}
               </button>
             ))}
           </div>
         </div>
+
+        <div style={{ height: 1, background: 'rgba(200,184,154,0.5)', margin: '0 24px' }}/>
 
         <div style={{ padding: '24px 24px 40px' }}>
 
           {/* 단일 모드 */}
           {mode === 'single' && (
             <>
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: '18px' }}>
                 <span style={labelStyle}>와인 사진</span>
                 <label style={{ display: 'block', cursor: 'pointer' }}>
                   <input type="file" accept="image/*" onChange={handleSingleImage} style={{ display: 'none' }}/>
                   {imagePreview ? (
-                    <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', height: '160px' }}>
+                    <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', height: '160px', border: '1px solid var(--glass-border)' }}>
                       <img src={imagePreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
-                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: '13px', color: '#fff', fontWeight: '600', background: 'rgba(0,0,0,0.4)', padding: '6px 14px', borderRadius: '20px' }}>사진 변경</span>
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(42,36,32,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span className="type-caption" style={{ color: '#fff', background: 'rgba(42,36,32,0.5)', padding: '6px 14px', borderRadius: 'var(--radius-full)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>사진 변경</span>
                       </div>
                     </div>
                   ) : (
-                    <div style={{ height: '100px', borderRadius: '16px', border: '2px dashed #F0EAE0', background: '#FAFAF8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                      <div style={{ fontSize: '24px' }}>📷</div>
-                      <div style={{ fontSize: '13px', color: '#AAA', fontWeight: '600' }}>사진 추가하기</div>
+                    <div style={{ height: '110px', borderRadius: 'var(--radius-md)', border: '1.5px dashed rgba(200,184,154,0.7)', background: 'rgba(250,246,238,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <div style={{ fontSize: '24px', opacity: 0.6 }}>📷</div>
+                      <div className="type-caption" style={{ color: 'var(--ink-mist)' }}>사진 추가하기</div>
                     </div>
                   )}
                 </label>
               </div>
 
               {imageFile && (
-                <button onClick={handleSingleRecognize} disabled={recognizing} style={{
-                  width: '100%', padding: '12px', borderRadius: '12px', marginBottom: '16px',
-                  background: recognizing ? '#F0EAE0' : 'linear-gradient(135deg, #2D1B35, #4A2040)',
-                  border: 'none', color: recognizing ? '#AAA' : '#fff',
-                  fontSize: '14px', fontWeight: '700', cursor: recognizing ? 'not-allowed' : 'pointer',
-                  fontFamily: "'Pretendard', sans-serif",
+                <button onClick={handleSingleRecognize} disabled={recognizing} className="type-caption" style={{
+                  width: '100%', padding: '14px', borderRadius: 'var(--radius-md)', marginBottom: '18px',
+                  background: recognizing ? 'rgba(200,184,154,0.4)' : 'var(--ink-charcoal)',
+                  border: 'none', color: recognizing ? 'var(--ink-mist)' : '#fff',
+                  cursor: recognizing ? 'not-allowed' : 'pointer',
+                  fontFamily: 'var(--font-sans)',
                 }}>
-                  {recognizing ? '⏳ AI 분석 중...' : '✨ AI로 라벨 자동 인식'}
+                  {recognizing ? '⏳ AI 분석 중…' : '✨ AI로 라벨 자동 인식'}
                 </button>
               )}
 
               {aiMsg && (
-                <div style={{ marginBottom: '16px', padding: '10px 14px', borderRadius: '10px', background: 'rgba(39,174,96,0.08)', border: '1px solid rgba(39,174,96,0.2)', fontSize: '13px', color: '#27AE60', fontWeight: '600' }}>
+                <div className="type-body" style={{ marginBottom: '18px', padding: '10px 14px', borderRadius: 'var(--radius-md)', background: 'rgba(92,107,63,0.08)', border: '1px solid rgba(92,107,63,0.2)', color: 'var(--ink-olive)' }}>
                   {aiMsg}
                 </div>
               )}
 
               {/* 와인 종류 */}
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: '18px' }}>
                 <span style={labelStyle}>와인 종류</span>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {WINE_TYPES.map(t => (
-                    <button key={t.value} onClick={() => setF('wine_type', t.value)} style={{
-                      padding: '6px 12px', borderRadius: '20px',
-                      border: form.wine_type === t.value ? '2px solid #8B2635' : '1.5px solid #F0EAE0',
-                      background: form.wine_type === t.value ? 'rgba(139,38,53,0.08)' : '#FAFAF8',
-                      color: form.wine_type === t.value ? '#8B2635' : '#AAA',
-                      fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-                      fontFamily: "'Pretendard', sans-serif",
+                    <button key={t.value} onClick={() => setF('wine_type', t.value)} className="type-micro" style={{
+                      padding: '7px 13px', borderRadius: 'var(--radius-full)',
+                      border: form.wine_type === t.value ? '1.5px solid var(--ink-bordeaux)' : '1px solid rgba(200,184,154,0.5)',
+                      background: form.wine_type === t.value ? 'rgba(107,31,42,0.08)' : 'rgba(250,246,238,0.6)',
+                      color: form.wine_type === t.value ? 'var(--ink-bordeaux)' : 'var(--ink-mist)',
+                      cursor: 'pointer', fontFamily: 'var(--font-sans)',
                     }}>{t.emoji} {t.label}</button>
                   ))}
                 </div>
@@ -336,16 +346,18 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
                 <input value={form.grape_variety} onChange={e => setF('grape_variety', e.target.value)} placeholder="예) Aligoté" style={inputStyle} />
               </div>
 
-              {error && <div style={{ marginBottom: '12px', fontSize: '13px', color: '#E74C3C', fontWeight: '600', textAlign: 'center' }}>{error}</div>}
+              {error && (
+                <div className="type-caption" style={{ marginBottom: '14px', color: '#B53E2A', textAlign: 'center' }}>{error}</div>
+              )}
 
-              <button onClick={handleSingleSave} disabled={saving} style={{
-                width: '100%', padding: '16px', borderRadius: '14px',
-                background: saving ? '#CCC' : 'linear-gradient(135deg, #8B2635, #C0394D)',
-                border: 'none', color: '#fff', fontSize: '15px', fontWeight: '700',
+              <button onClick={handleSingleSave} disabled={saving} className="type-caption" style={{
+                width: '100%', padding: '16px', borderRadius: 'var(--radius-md)',
+                background: saving ? 'rgba(138,126,109,0.4)' : 'var(--ink-bordeaux)',
+                border: 'none', color: '#fff',
                 cursor: saving ? 'not-allowed' : 'pointer',
-                fontFamily: "'Pretendard', sans-serif",
+                fontFamily: 'var(--font-sans)',
               }}>
-                {saving ? '저장 중...' : '저장하기'}
+                {saving ? 'Saving…' : 'Save'}
               </button>
             </>
           )}
@@ -357,25 +369,25 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
                 <>
                   <label style={{ display: 'block', cursor: 'pointer', marginBottom: '20px' }}>
                     <input type="file" accept="image/*" multiple onChange={handleMultiImages} style={{ display: 'none' }}/>
-                    <div style={{ height: '120px', borderRadius: '16px', border: '2px dashed #F0EAE0', background: '#FAFAF8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                      <div style={{ fontSize: '32px' }}>📚</div>
-                      <div style={{ fontSize: '14px', color: '#AAA', fontWeight: '600' }}>여러 사진 한번에 선택</div>
-                      <div style={{ fontSize: '11px', color: '#CCC' }}>갤러리에서 여러 장 선택 가능</div>
+                    <div style={{ height: '130px', borderRadius: 'var(--radius-md)', border: '1.5px dashed rgba(200,184,154,0.7)', background: 'rgba(250,246,238,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <div style={{ fontSize: '32px', opacity: 0.6 }}>📚</div>
+                      <div className="type-caption" style={{ color: 'var(--ink-mist)' }}>여러 사진 한번에 선택</div>
+                      <div className="type-micro" style={{ color: 'var(--ink-sand)' }}>갤러리에서 여러 장 가능</div>
                     </div>
                   </label>
 
                   {multiFiles.length > 0 && (
                     <>
-                      <div style={{ marginBottom: '16px', padding: '12px 14px', borderRadius: '12px', background: '#F7F3EE', fontSize: '13px', color: '#555' }}>
+                      <div className="type-body" style={{ marginBottom: '18px', padding: '12px 14px', borderRadius: 'var(--radius-md)', background: 'rgba(244,239,230,0.7)', border: '1px solid rgba(200,184,154,0.4)', color: 'var(--ink-charcoal)' }}>
                         📷 {multiFiles.length}장 선택됨 — AI가 순서대로 인식하고 자동 저장해요
                       </div>
-                      <button onClick={handleMultiStart} style={{
-                        width: '100%', padding: '16px', borderRadius: '14px',
-                        background: 'linear-gradient(135deg, #8B2635, #C0394D)',
-                        border: 'none', color: '#fff', fontSize: '15px', fontWeight: '700',
-                        cursor: 'pointer', fontFamily: "'Pretendard', sans-serif",
+                      <button onClick={handleMultiStart} className="type-caption" style={{
+                        width: '100%', padding: '16px', borderRadius: 'var(--radius-md)',
+                        background: 'var(--ink-bordeaux)',
+                        border: 'none', color: '#fff',
+                        cursor: 'pointer', fontFamily: 'var(--font-sans)',
                       }}>
-                        ✨ AI 자동 인식 & 저장 시작
+                        ✨ AI 자동 인식 &amp; 저장 시작
                       </button>
                     </>
                   )}
@@ -385,27 +397,38 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
               {/* 진행 상황 */}
               {(multiRunning || multiDone) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1A1A1A', marginBottom: '8px' }}>
-                    {multiDone ? `✅ 완료! (${multiProgress.filter(p => p.status === 'done').length}/${multiProgress.length}장)` : '⏳ 처리 중...'}
+                  <div className="type-title-md" style={{ fontStyle: 'italic', color: 'var(--ink-charcoal)', marginBottom: '12px' }}>
+                    {multiDone ? `✅ 완료 — ${multiProgress.filter(p => p.status === 'done').length}/${multiProgress.length}장` : '⏳ 처리 중…'}
                   </div>
                   {multiProgress.map((p, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', background: p.status === 'done' ? 'rgba(39,174,96,0.06)' : p.status === 'error' ? 'rgba(231,76,60,0.06)' : '#F7F3EE', border: `1px solid ${p.status === 'done' ? 'rgba(39,174,96,0.2)' : p.status === 'error' ? 'rgba(231,76,60,0.2)' : '#F0EAE0'}` }}>
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px',
+                      borderRadius: 'var(--radius-md)',
+                      background: p.status === 'done' ? 'rgba(92,107,63,0.06)'
+                                : p.status === 'error' ? 'rgba(181,62,42,0.06)'
+                                : 'rgba(244,239,230,0.7)',
+                      border: `1px solid ${
+                        p.status === 'done' ? 'rgba(92,107,63,0.25)'
+                        : p.status === 'error' ? 'rgba(181,62,42,0.25)'
+                        : 'rgba(200,184,154,0.4)'
+                      }`,
+                    }}>
                       <span style={{ fontSize: '16px' }}>{statusIcon(p.status)}</span>
                       <div style={{ flex: 1, overflow: 'hidden' }}>
-                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#1A1A1A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div className="type-body" style={{ color: 'var(--ink-charcoal)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '13px' }}>
                           {p.name || p.file}
                         </div>
-                        <div style={{ fontSize: '10px', color: '#AAA' }}>{statusText(p.status, p.name)}</div>
+                        <div className="type-micro" style={{ color: 'var(--ink-mist)' }}>{statusText(p.status, p.name)}</div>
                       </div>
                     </div>
                   ))}
 
                   {multiDone && (
-                    <button onClick={onClose} style={{
-                      marginTop: '8px', width: '100%', padding: '14px', borderRadius: '14px',
-                      background: 'linear-gradient(135deg, #8B2635, #C0394D)',
-                      border: 'none', color: '#fff', fontSize: '15px', fontWeight: '700',
-                      cursor: 'pointer', fontFamily: "'Pretendard', sans-serif",
+                    <button onClick={onClose} className="type-caption" style={{
+                      marginTop: '12px', width: '100%', padding: '16px', borderRadius: 'var(--radius-md)',
+                      background: 'var(--ink-bordeaux)',
+                      border: 'none', color: '#fff',
+                      cursor: 'pointer', fontFamily: 'var(--font-sans)',
                     }}>
                       완료 — 홈으로 돌아가기
                     </button>

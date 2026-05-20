@@ -1,11 +1,19 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis } from 'recharts'
-
-const COLORS = ['#8B2635', '#3A7FA0', '#6B8E3A', '#C8A951', '#9B59B6', '#E67E22']
+import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 
 const WINE_TYPE_LABEL: Record<string, string> = {
-  red: '레드 🍷', white: '화이트 🥂', sparkling: '샴페인 🍾', rosé: '로제 🌸', dessert: '디저트 🍯',
+  red: 'Red', white: 'White', sparkling: 'Champagne', rosé: 'Rosé', dessert: 'Dessert',
+}
+const WINE_TYPE_EMOJI: Record<string, string> = {
+  red: '🍷', white: '🥂', sparkling: '🍾', rosé: '🌸', dessert: '🍯',
+}
+const WINE_TYPE_COLOR: Record<string, string> = {
+  red: '#6B1F2A',     // bordeaux
+  white: '#5C6B3F',   // olive
+  sparkling: '#B8860B', // ochre
+  rosé: '#A45560',
+  dessert: '#A06A1A',
 }
 
 const COUNTRY_FLAG: Record<string, string> = {
@@ -21,7 +29,6 @@ const COUNTRY_FLAG: Record<string, string> = {
   '그리스': '🇬🇷', '일본': '🇯🇵', '한국': '🇰🇷',
 }
 
-// 음식 이모지 매핑
 const FOOD_EMOJI: Record<string, string> = {
   '소고기': '🥩', '돼지고기': '🍖', '양고기': '🫀', '닭고기': '🍗', '샤퀴테리': '🥓',
   '해산물': '🦞', '생선회': '🐟', '굴': '🦪', '생선': '🐠',
@@ -33,6 +40,21 @@ const FOOD_EMOJI: Record<string, string> = {
 
 function countryWithFlag(name: string) {
   return `${COUNTRY_FLAG[name] || '🍾'} ${name}`
+}
+
+const NUMBER_WORDS: Record<number, string> = {
+  0: 'Zero', 1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five', 6: 'Six', 7: 'Seven', 8: 'Eight', 9: 'Nine', 10: 'Ten',
+  11: 'Eleven', 12: 'Twelve', 13: 'Thirteen', 14: 'Fourteen', 15: 'Fifteen', 16: 'Sixteen', 17: 'Seventeen', 18: 'Eighteen', 19: 'Nineteen',
+}
+const TENS: Record<number, string> = { 20: 'Twenty', 30: 'Thirty', 40: 'Forty', 50: 'Fifty', 60: 'Sixty', 70: 'Seventy', 80: 'Eighty', 90: 'Ninety' }
+function numberToWord(n: number): string {
+  if (n <= 19) return NUMBER_WORDS[n] || String(n)
+  if (n < 100) {
+    const t = Math.floor(n / 10) * 10
+    const r = n % 10
+    return r === 0 ? TENS[t] : `${TENS[t]}-${NUMBER_WORDS[r].toLowerCase()}`
+  }
+  return String(n)
 }
 
 function useScrollVisible(threshold = 0.12) {
@@ -47,62 +69,61 @@ function useScrollVisible(threshold = 0.12) {
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [])
+  }, [threshold])
   return { ref, visible }
 }
 
-function AnimCard({ children, delay = 0, noPad }: { children: React.ReactNode; delay?: number; noPad?: boolean }) {
+function Section({ caption, title, children, delay = 0 }: { caption: string; title?: string; children: React.ReactNode; delay?: number }) {
   const { ref, visible } = useScrollVisible()
   return (
-    <div ref={ref} style={{
-      background: '#fff', borderRadius: '16px', padding: noPad ? '0' : '16px', marginBottom: '12px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #F0EAE0', overflow: 'hidden',
+    <section ref={ref} className="glass-card glass-card--light" style={{
+      padding: '24px 22px',
+      marginBottom: '20px',
       opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0)' : 'translateY(24px)',
-      transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`,
-    }}>{children}</div>
+      transform: visible ? 'translateY(0)' : 'translateY(16px)',
+      transition: `opacity 0.55s var(--ease-out-soft) ${delay}ms, transform 0.55s var(--ease-out-soft) ${delay}ms`,
+    }}>
+      <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '14px' }}>{caption}</div>
+      {title && <h3 className="type-display-2" style={{ color: 'var(--ink-charcoal)', margin: '0 0 18px', fontSize: '32px' }}>{title}</h3>}
+      {children}
+    </section>
   )
 }
 
-function SectionTitle({ title }: { title: string }) {
-  return (
-    <div style={{ fontSize: '14px', fontWeight: '700', color: '#1A1A1A', marginBottom: '14px', paddingBottom: '8px', borderBottom: '1px solid #F0EAE0' }}>
-      {title}
-    </div>
-  )
-}
-
-// 그라데이션 커스텀 바
-function GradBar({ data, gradient, unit = '병', labelEmoji, visible, delay = 0 }: {
-  data: { name: string; count: number | string }[]
-  gradient: string
+function HorizontalBar({ data, accent, unit = '병', labelEmoji, visible, delay = 0 }: {
+  data: { name: string; count: number }[]
+  accent: string
   unit?: string
   labelEmoji?: Record<string, string>
   visible: boolean
   delay?: number
 }) {
-  const max = Math.max(...data.map(d => d.count as number))
+  const max = Math.max(...data.map(d => d.count))
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {data.map((item, i) => {
-        const pct = Math.round(((item.count as number) / max) * 100)
+        const pct = Math.round((item.count / max) * 100)
         const emoji = labelEmoji?.[item.name] || ''
         return (
-          <div key={i} style={{ opacity: visible ? 1 : 0, transition: `opacity 0.4s ease ${delay + i * 50}ms` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-              <span style={{ fontSize: '13px', color: '#333' }}>{emoji ? `${emoji} ${item.name}` : item.name}</span>
-              <span style={{ fontSize: '12px', fontWeight: '700', color: '#555', background: '#F7F3EE', padding: '2px 8px', borderRadius: '10px' }}>
-                {item.count as number}{unit}
+          <div key={i} style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? 'translateX(0)' : 'translateX(-8px)',
+            transition: `opacity 0.4s ease ${delay + i * 60}ms, transform 0.4s ease ${delay + i * 60}ms`,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
+              <span className="type-body" style={{ color: 'var(--ink-charcoal)', fontSize: '14px' }}>
+                {emoji ? `${emoji} ${item.name}` : item.name}
+              </span>
+              <span className="type-title-md" style={{ fontStyle: 'italic', color: 'var(--ink-bordeaux)' }}>
+                {item.count}<span className="type-micro" style={{ color: 'var(--ink-mist)', marginLeft: '4px' }}>{unit}</span>
               </span>
             </div>
-            <div style={{ height: '9px', borderRadius: '5px', background: '#F0EAE0', overflow: 'hidden' }}>
+            <div style={{ height: '2px', background: 'rgba(200,184,154,0.3)', overflow: 'hidden' }}>
               <div style={{
                 height: '100%',
                 width: visible ? `${pct}%` : '0%',
-                borderRadius: '5px',
-                background: gradient,
-                transition: `width 0.7s cubic-bezier(0.4,0,0.2,1) ${delay + i * 60}ms`,
-                boxShadow: `0 2px 6px ${gradient.includes('8B2635') ? 'rgba(139,38,53,0.3)' : 'rgba(0,0,0,0.15)'}`,
+                background: accent,
+                transition: `width 0.8s cubic-bezier(0.4,0,0.2,1) ${delay + i * 60}ms`,
               }}/>
             </div>
           </div>
@@ -112,73 +133,78 @@ function GradBar({ data, gradient, unit = '병', labelEmoji, visible, delay = 0 
   )
 }
 
-function BarSection({ title, data, gradient, unit = '병', labelEmoji, delay = 0 }: {
-  title: string
-  data: { name: string; count: number | string }[]
-  gradient: string
+function BarSection({ caption, data, accent, unit = '병', labelEmoji, delay = 0 }: {
+  caption: string
+  data: { name: string; count: number }[]
+  accent: string
   unit?: string
   labelEmoji?: Record<string, string>
   delay?: number
 }) {
   const { ref, visible } = useScrollVisible()
   return (
-    <div ref={ref} style={{
-      background: '#fff', borderRadius: '16px', padding: '16px', marginBottom: '12px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #F0EAE0',
+    <section ref={ref} className="glass-card glass-card--light" style={{
+      padding: '22px',
+      marginBottom: '20px',
       opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0)' : 'translateY(24px)',
-      transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`,
+      transform: visible ? 'translateY(0)' : 'translateY(16px)',
+      transition: `opacity 0.55s var(--ease-out-soft) ${delay}ms, transform 0.55s var(--ease-out-soft) ${delay}ms`,
     }}>
-      <SectionTitle title={title} />
-      <GradBar data={data} gradient={gradient} unit={unit} labelEmoji={labelEmoji} visible={visible} delay={delay} />
-    </div>
+      <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '18px' }}>{caption}</div>
+      <HorizontalBar data={data} accent={accent} unit={unit} labelEmoji={labelEmoji} visible={visible} delay={delay} />
+    </section>
   )
 }
 
-// 빈티지 버블/타임라인 인포그래픽
 function VintageTimeline({ data, visible }: { data: { name: string; count: number }[]; visible: boolean }) {
   const max = Math.max(...data.map(d => d.count))
   return (
     <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '8px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', minWidth: `${data.length * 52}px`, padding: '8px 4px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', minWidth: `${data.length * 48}px`, padding: '8px 4px 0' }}>
         {data.map((item, i) => {
           const heightPct = Math.round((item.count / max) * 100)
-          const barH = Math.max(16, Math.round((item.count / max) * 100))
+          const barH = Math.max(20, Math.round((item.count / max) * 120))
           const isMax = item.count === max
           return (
             <div key={i} style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: '0 0 44px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flex: '0 0 36px',
               opacity: visible ? 1 : 0,
               transition: `opacity 0.4s ease ${i * 40}ms`,
             }}>
-              {/* 버블 수치 */}
+              <span className="type-micro" style={{
+                color: isMax ? 'var(--ink-bordeaux)' : 'var(--ink-mist)',
+                fontStyle: 'italic', letterSpacing: 0,
+              }}>{item.count}</span>
               <div style={{
-                fontSize: '11px', fontWeight: '700',
-                color: isMax ? '#fff' : '#8B2635',
-                background: isMax ? '#8B2635' : 'rgba(139,38,53,0.08)',
-                borderRadius: '10px', padding: '2px 6px',
-                minWidth: '20px', textAlign: 'center',
-              }}>{item.count}</div>
-              {/* 바 */}
-              <div style={{
-                width: '32px',
+                width: '24px',
                 height: visible ? `${barH}px` : '0px',
-                borderRadius: '6px 6px 2px 2px',
-                background: isMax
-                  ? 'linear-gradient(180deg, #C0394D, #8B2635)'
-                  : `linear-gradient(180deg, rgba(139,38,53,${0.3 + (heightPct / 100) * 0.5}), rgba(139,38,53,${0.2 + (heightPct / 100) * 0.3}))`,
-                transition: `height 0.6s cubic-bezier(0.4,0,0.2,1) ${i * 50}ms`,
-                boxShadow: isMax ? '0 4px 12px rgba(139,38,53,0.35)' : 'none',
+                borderRadius: '2px',
+                background: isMax ? 'var(--ink-bordeaux)' : `rgba(107,31,42,${0.25 + (heightPct / 100) * 0.45})`,
+                transition: `height 0.7s cubic-bezier(0.4,0,0.2,1) ${i * 50}ms`,
               }}/>
-              {/* 연도 */}
-              <div style={{ fontSize: '9px', color: '#AAA', fontWeight: '600', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '9px', color: 'var(--ink-sand)', fontWeight: 500, whiteSpace: 'nowrap', letterSpacing: '0.05em' }}>
                 {String(item.name).replace('년', '')}
-              </div>
+              </span>
             </div>
           )
         })}
       </div>
     </div>
+  )
+}
+
+function VintageSection({ data }: { data: { name: string; count: number }[] }) {
+  const { ref, visible } = useScrollVisible()
+  return (
+    <section ref={ref} className="glass-card glass-card--light" style={{
+      padding: '22px',
+      marginBottom: '20px',
+      opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(16px)',
+      transition: 'opacity 0.55s var(--ease-out-soft), transform 0.55s var(--ease-out-soft)',
+    }}>
+      <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '18px' }}>Vintage Distribution</div>
+      <VintageTimeline data={data} visible={visible} />
+    </section>
   )
 }
 
@@ -203,26 +229,28 @@ export default function Analytics({ wines }: { wines: any[] }) {
 
   if (wines.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px' }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
-        <div style={{ fontSize: '16px', fontWeight: '600', color: '#555', marginBottom: '8px' }}>분석 준비 중</div>
-        <div style={{ fontSize: '13px', color: '#AAA' }}>와인을 더 기록하면 분석이 시작돼요</div>
+      <div style={{ padding: '40px 24px' }}>
+        <div className="glass-card glass-card--light" style={{ padding: '40px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.6 }}>📊</div>
+          <div className="type-title-md" style={{ fontStyle: 'italic', color: 'var(--ink-charcoal)', marginBottom: '8px' }}>분석 준비 중</div>
+          <div className="type-micro" style={{ color: 'var(--ink-mist)' }}>WINES MUST BE LOGGED FIRST</div>
+        </div>
       </div>
     )
   }
 
   const typeData = Object.entries(
     wines.reduce((acc, w) => { acc[w.wine_type] = (acc[w.wine_type] || 0) + 1; return acc }, {} as Record<string, number>)
-  ).map(([type, count]) => ({ name: WINE_TYPE_LABEL[type] || type, value: count as number }))
+  ).map(([type, count]) => ({ type, name: WINE_TYPE_LABEL[type] || type, value: count as number, color: WINE_TYPE_COLOR[type] || '#6B1F2A', emoji: WINE_TYPE_EMOJI[type] || '🍷' }))
 
   const regionData = Object.entries(
     wines.reduce((acc, w) => { if (w.region) acc[w.region] = (acc[w.region] || 0) + 1; return acc }, {} as Record<string, number>)
-  ).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 8).map(([name, count]) => ({ name, count }))
+  ).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 8).map(([name, count]) => ({ name, count: count as number }))
 
   const countryData = Object.entries(
     wines.reduce((acc, w) => { if (w.country) acc[w.country] = (acc[w.country] || 0) + 1; return acc }, {} as Record<string, number>)
   ).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 8)
-    .map(([name, count]) => ({ name: countryWithFlag(name), count }))
+    .map(([name, count]) => ({ name: countryWithFlag(name), count: count as number }))
 
   const grapeData = Object.entries(
     wines.reduce((acc, w) => {
@@ -232,14 +260,14 @@ export default function Analytics({ wines }: { wines: any[] }) {
       }
       return acc
     }, {} as Record<string, number>)
-  ).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 8).map(([name, count]) => ({ name, count }))
+  ).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 8).map(([name, count]) => ({ name, count: count as number }))
 
   const monthData = Object.entries(
     wines.reduce((acc, w) => {
       if (w.drunk_at) { const m = w.drunk_at.slice(0, 7); acc[m] = (acc[m] || 0) + 1 }
       return acc
     }, {} as Record<string, number>)
-  ).sort((a, b) => a[0].localeCompare(b[0])).map(([month, count]) => ({ name: month.slice(2), count }))
+  ).sort((a, b) => a[0].localeCompare(b[0])).map(([month, count]) => ({ name: month.slice(2), count: count as number }))
 
   const vintageData = Object.entries(
     wines.reduce((acc, w) => { if (w.vintage_year) acc[w.vintage_year] = (acc[w.vintage_year] || 0) + 1; return acc }, {} as Record<string, number>)
@@ -250,146 +278,114 @@ export default function Analytics({ wines }: { wines: any[] }) {
       if (w.food_pairings?.length > 0) w.food_pairings.forEach((f: string) => { acc[f] = (acc[f] || 0) + 1 })
       return acc
     }, {} as Record<string, number>)
-  ).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 10).map(([name, count]) => ({ name, count }))
+  ).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 10).map(([name, count]) => ({ name, count: count as number }))
 
-  const avgRating = wines.filter(w => w.rating).length > 0
-    ? (wines.reduce((a, w) => a + (w.rating || 0), 0) / wines.filter(w => w.rating).length).toFixed(1) : '—'
+  const ratedCount = wines.filter(w => w.rating).length
+  const avgRating = ratedCount > 0
+    ? (wines.reduce((a, w) => a + (w.rating || 0), 0) / ratedCount).toFixed(1) : '—'
+  const countriesCount = new Set(wines.map(w => w.country).filter(Boolean)).size
+  const regionsCount = new Set(wines.map(w => w.region).filter(Boolean)).size
 
   return (
-    <div style={{ padding: '16px 16px 100px', fontFamily: "'Pretendard', sans-serif" }}>
+    <div style={{ padding: '24px 16px 120px', fontFamily: 'var(--font-sans)' }}>
 
-      {/* 요약 카드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-        {[
-          { label: '총 기록', value: wines.length + '병', emoji: '🍷', grad: 'linear-gradient(135deg, #8B2635, #C0394D)' },
-          { label: '평균 별점', value: avgRating, emoji: '⭐', grad: 'linear-gradient(135deg, #C8A951, #E0B84A)' },
-          { label: '방문 나라', value: new Set(wines.map(w => w.country).filter(Boolean)).size + '개국', emoji: '🌍', grad: 'linear-gradient(135deg, #3A7FA0, #5BA8C8)' },
-          { label: '탐험 지역', value: new Set(wines.map(w => w.region).filter(Boolean)).size + '곳', emoji: '📍', grad: 'linear-gradient(135deg, #6B8E3A, #8FB84E)' },
-        ].map((item, i) => (
-          <SummaryCard key={item.label} item={item} delay={i * 80} />
-        ))}
-      </div>
-
-      {/* 종류별 도넛 */}
-      <AnimCard delay={0}>
-        <SectionTitle title="🍷 와인 종류별" />
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <PieChart width={130} height={130}>
-            <Pie data={typeData} cx={65} cy={65} innerRadius={34} outerRadius={54} paddingAngle={3} dataKey="value">
-              {typeData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-            </Pie>
-            <Tooltip formatter={(v) => [v + '병', '']} />
-          </PieChart>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '7px' }}>
-            {typeData.map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: COLORS[i % COLORS.length], flexShrink: 0 }}/>
-                <span style={{ flex: 1, color: '#555' }}>{item.name}</span>
-                <span style={{ fontWeight: '700', color: '#1A1A1A', background: '#F7F3EE', padding: '1px 7px', borderRadius: '8px', fontSize: '11px' }}>{item.value}병</span>
-              </div>
-            ))}
-          </div>
+      {/* The Cellar — 큰 숫자 헤로 */}
+      <section className="glass-card glass-card--light" style={{ padding: '28px 22px', marginBottom: '20px' }}>
+        <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '14px' }}>The Cellar</div>
+        <h2 className="type-display-1" style={{ color: 'var(--ink-charcoal)', margin: '0 0 6px', fontSize: '56px' }}>
+          {numberToWord(wines.length)}
+        </h2>
+        <p className="type-display-2" style={{ color: 'var(--ink-charcoal)', margin: '0 0 18px', fontSize: '32px', fontStyle: 'italic', fontWeight: 300 }}>
+          bottles.
+        </p>
+        <div className="type-micro" style={{ color: 'var(--ink-mist)' }}>
+          AVERAGE · <span className="type-title-md" style={{ fontStyle: 'italic', color: 'var(--ink-bordeaux)', fontSize: '16px', letterSpacing: 0 }}>{avgRating}</span> / 5 ★
         </div>
-      </AnimCard>
+      </section>
 
-      {/* 월별 추이 — 그라데이션 Area 차트, 꽉 차게 */}
-      <AnimCard delay={60} noPad>
-        <div style={{ padding: '16px 16px 0' }}>
-          <SectionTitle title="📅 월별 추이" />
+      {/* 요약 수치 — 2개 글래스 카드 */}
+      <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+        <div className="glass-card glass-card--light" style={{ padding: '20px' }}>
+          <div className="type-micro" style={{ color: 'var(--ink-mist)', marginBottom: '6px' }}>COUNTRIES</div>
+          <div className="type-display-2" style={{ color: 'var(--ink-charcoal)', fontSize: '40px' }}>{countriesCount}</div>
         </div>
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <div style={{ minWidth: Math.max(monthData.length * 52, 320) + 'px' }}>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={monthData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+        <div className="glass-card glass-card--light" style={{ padding: '20px' }}>
+          <div className="type-micro" style={{ color: 'var(--ink-mist)', marginBottom: '6px' }}>REGIONS</div>
+          <div className="type-display-2" style={{ color: 'var(--ink-charcoal)', fontSize: '40px' }}>{regionsCount}</div>
+        </div>
+      </section>
+
+      {/* A Year in Wine — 월별 추이 */}
+      <Section caption="A Year in Wine" delay={0}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
+          <div style={{ minWidth: Math.max(monthData.length * 48, 320) + 'px' }}>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={monthData} margin={{ top: 10, right: 8, left: -24, bottom: 0 }}>
                 <defs>
                   <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8B2635" stopOpacity={0.35}/>
-                    <stop offset="100%" stopColor="#8B2635" stopOpacity={0.02}/>
+                    <stop offset="0%" stopColor="#6B1F2A" stopOpacity={0.28}/>
+                    <stop offset="100%" stopColor="#6B1F2A" stopOpacity={0.0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F0EAE0" vertical={false}/>
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#AAA' }} axisLine={false} tickLine={false} interval={0}/>
-                <YAxis tick={{ fontSize: 10, fill: '#AAA' }} axisLine={false} tickLine={false} allowDecimals={false}/>
+                <CartesianGrid strokeDasharray="2 6" stroke="rgba(200,184,154,0.4)" vertical={false}/>
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#8A7E6D' }} axisLine={false} tickLine={false} interval={0}/>
+                <YAxis tick={{ fontSize: 10, fill: '#8A7E6D' }} axisLine={false} tickLine={false} allowDecimals={false}/>
                 <Tooltip
-                  contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', fontSize: '12px' }}
+                  contentStyle={{ borderRadius: '12px', border: '1px solid rgba(200,184,154,0.5)', boxShadow: '0 4px 16px rgba(107,31,42,0.10)', fontSize: '12px', background: 'rgba(250,246,238,0.95)' }}
                   formatter={(v) => [v + '병', '와인 수']}
                 />
-                <Area type="monotone" dataKey="count" stroke="#8B2635" strokeWidth={2.5} fill="url(#areaGrad)" dot={{ fill: '#8B2635', r: 4, strokeWidth: 0 }} activeDot={{ r: 6, fill: '#C0394D' }}/>
+                <Area type="monotone" dataKey="count" stroke="#6B1F2A" strokeWidth={2} fill="url(#areaGrad)" dot={{ fill: '#6B1F2A', r: 3, strokeWidth: 0 }} activeDot={{ r: 5, fill: '#6B1F2A' }}/>
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
-      </AnimCard>
+      </Section>
 
-      {/* 국가별 */}
+      {/* By Type — 가로 막대 (도넛 대체) */}
+      <section className="glass-card glass-card--light" style={{ padding: '22px', marginBottom: '20px' }}>
+        <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '18px' }}>By Type</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {(() => {
+            const max = Math.max(...typeData.map(d => d.value))
+            return typeData.map(item => {
+              const pct = Math.round((item.value / max) * 100)
+              return (
+                <div key={item.name}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
+                    <span className="type-body" style={{ color: 'var(--ink-charcoal)' }}>{item.emoji} {item.name}</span>
+                    <span className="type-title-md" style={{ fontStyle: 'italic', color: item.color }}>
+                      {item.value}<span className="type-micro" style={{ color: 'var(--ink-mist)', marginLeft: '4px' }}>병</span>
+                    </span>
+                  </div>
+                  <div style={{ height: '2px', background: 'rgba(200,184,154,0.3)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: item.color, transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1)' }}/>
+                  </div>
+                </div>
+              )
+            })
+          })()}
+        </div>
+      </section>
+
       {countryData.length > 0 && (
-        <BarSection title="🌍 국가별" data={countryData}
-          gradient="linear-gradient(90deg, #2D6A8C, #5BA8C8)"
-          delay={0} />
+        <BarSection caption="By Country" data={countryData} accent="var(--ink-bordeaux)" delay={0} />
       )}
 
-      {/* 지역별 */}
       {regionData.length > 0 && (
-        <BarSection title="📍 지역별" data={regionData}
-          gradient="linear-gradient(90deg, #4A7028, #8FB84E)"
-          delay={60} />
+        <BarSection caption="By Region" data={regionData} accent="var(--ink-olive)" delay={60} />
       )}
 
-      {/* 품종별 */}
       {grapeData.length > 0 && (
-        <BarSection title="🍇 품종별 (주품종 기준)" data={grapeData}
-          gradient="linear-gradient(90deg, #A8852A, #E0C97A)"
-          delay={0} />
+        <BarSection caption="The Grapes" data={grapeData} accent="var(--ink-ochre)" delay={0} />
       )}
 
-      {/* 빈티지 분포 */}
       {vintageData.length > 0 && <VintageSection data={vintageData} />}
 
-      {/* 페어링 음식 */}
       {foodData.length > 0 && (
-        <BarSection title="🍽 페어링 음식 Top 10" data={foodData}
-          gradient="linear-gradient(90deg, #C05A10, #F0A050)"
-          unit="회"
-          labelEmoji={FOOD_EMOJI}
-          delay={0} />
+        <BarSection caption="Paired Most Often" data={foodData} accent="var(--ink-ochre)" unit="회" labelEmoji={FOOD_EMOJI} delay={0} />
       )}
 
-      {/* AI 인사이트 */}
       <AIInsight insight={insight} loading={loading} insightError={insightError} onFetch={fetchInsight} />
-    </div>
-  )
-}
-
-// 빈티지용 별도 훅 (IIFE 안에서 호출 불가하므로 컴포넌트화)
-function VintageSection({ data }: { data: { name: string; count: number }[] }) {
-  const { ref, visible } = useScrollVisible()
-  return (
-    <div ref={ref} style={{
-      background: '#fff', borderRadius: '16px', padding: '16px', marginBottom: '12px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #F0EAE0',
-      opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(24px)',
-      transition: 'opacity 0.5s ease, transform 0.5s ease',
-    }}>
-      <SectionTitle title="🗓 빈티지 분포" />
-      <VintageTimeline data={data} visible={visible} />
-    </div>
-  )
-}
-
-function SummaryCard({ item, delay }: { item: { label: string; value: any; emoji: string; grad: string }; delay: number }) {
-  const { ref, visible } = useScrollVisible()
-  return (
-    <div ref={ref} style={{
-      borderRadius: '14px', padding: '14px', overflow: 'hidden', position: 'relative',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.08)', border: '1px solid rgba(255,255,255,0.1)',
-      background: item.grad,
-      opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0) scale(1)' : 'translateY(16px) scale(0.96)',
-      transition: `opacity 0.45s ease ${delay}ms, transform 0.45s ease ${delay}ms`,
-    }}>
-      <div style={{ position: 'absolute', top: -10, right: -10, fontSize: '48px', opacity: 0.15 }}>{item.emoji}</div>
-      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginBottom: '6px', fontWeight: '600' }}>{item.label}</div>
-      <div style={{ fontSize: '22px', fontWeight: '800', color: '#fff' }}>{item.value}</div>
     </div>
   )
 }
@@ -397,60 +393,68 @@ function SummaryCard({ item, delay }: { item: { label: string; value: any; emoji
 function AIInsight({ insight, loading, insightError, onFetch }: any) {
   const { ref, visible } = useScrollVisible()
   return (
-    <div ref={ref} style={{
-      background: 'linear-gradient(160deg, #1A1A2E, #4A2040)',
-      borderRadius: '16px', padding: '20px', marginBottom: '12px',
-      opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(24px)',
-      transition: 'opacity 0.6s ease, transform 0.6s ease',
+    <section ref={ref} className="glass-card glass-card--strong" style={{
+      padding: '24px', marginBottom: '20px',
+      opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(16px)',
+      transition: 'opacity 0.6s var(--ease-out-soft), transform 0.6s var(--ease-out-soft)',
     }}>
-      <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>✨ AI 와인 인사이트</div>
-      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>Claude가 두 분의 취향을 분석해드려요</div>
+      <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '8px' }}>AI Insight</div>
+      <h3 className="type-title-lg" style={{ color: 'var(--ink-charcoal)', margin: '0 0 6px' }}>
+        Claude reads your cellar.
+      </h3>
+      <p className="type-body" style={{ fontStyle: 'italic', color: 'var(--ink-mist)', margin: '0 0 20px' }}>
+        두 분의 취향을 분석해드려요.
+      </p>
+
       {!insight && !loading && (
-        <button onClick={onFetch} style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: "'Pretendard', sans-serif" }}>
-          🔍 취향 분석 시작하기
+        <button onClick={onFetch} className="type-caption" style={{
+          width: '100%', padding: '14px',
+          borderRadius: 'var(--radius-md)', background: 'var(--ink-bordeaux)',
+          border: 'none', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font-sans)',
+        }}>
+          🔍 취향 분석 시작
         </button>
       )}
       {loading && (
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+        <div style={{ textAlign: 'center', padding: '24px 0' }}>
           <div style={{ fontSize: '24px', marginBottom: '8px' }}>🍷</div>
-          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>Claude가 와인 기록을 분석 중이에요...</div>
+          <div className="type-body" style={{ fontStyle: 'italic', color: 'var(--ink-mist)' }}>Claude가 와인 기록을 분석 중…</div>
         </div>
       )}
-      {insightError && <div style={{ fontSize: '13px', color: '#FF6B6B', padding: '10px', background: 'rgba(255,107,107,0.1)', borderRadius: '8px' }}>{insightError}</div>}
+      {insightError && (
+        <div className="type-body" style={{ padding: '10px 14px', background: 'rgba(181,62,42,0.08)', border: '1px solid rgba(181,62,42,0.2)', borderRadius: 'var(--radius-md)', color: '#B53E2A' }}>{insightError}</div>
+      )}
       {insight && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '12px', padding: '14px' }}>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '6px', letterSpacing: '1px', textTransform: 'uppercase' }}>총평</div>
-            <div style={{ fontSize: '13px', color: '#fff', lineHeight: '1.6' }}>{insight.overall}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <div className="type-micro" style={{ color: 'var(--ink-mist)', marginBottom: '8px' }}>OVERVIEW</div>
+            <p className="type-body" style={{ color: 'var(--ink-charcoal)', margin: 0, lineHeight: 1.65 }}>{insight.overall}</p>
           </div>
+          <div style={{ height: 1, background: 'rgba(200,184,154,0.4)' }}/>
           {[
-            { key: 'jaehyuk', label: '재혁의 취향', bg: 'rgba(139,38,53,0.3)', border: 'rgba(139,38,53,0.4)', grad: 'linear-gradient(135deg, #8B2635, #C0394D)' },
-            { key: 'wonwoo',  label: '원우의 취향',  bg: 'rgba(58,127,160,0.3)', border: 'rgba(58,127,160,0.4)', grad: 'linear-gradient(135deg, #3A7FA0, #5BA8C8)' },
+            { key: 'jaehyuk', label: 'Jaehyeok', color: 'var(--ink-bordeaux)' },
+            { key: 'wonwoo',  label: 'Wonwoo',   color: 'var(--ink-olive)' },
           ].map(p => (
-            <div key={p.key} style={{ background: p.bg, borderRadius: '12px', padding: '14px', border: `1px solid ${p.border}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: p.grad, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#fff', fontWeight: '700' }}>
-                  {p.key === 'jaehyuk' ? '재혁' : '원우'}
-                </div>
-                <div style={{ fontSize: '12px', fontWeight: '700', color: '#fff' }}>{p.label}</div>
-              </div>
-              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.6', marginBottom: '8px' }}>{insight[p.key]?.taste_profile}</div>
-              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>💡 {insight[p.key]?.insight}</div>
+            <div key={p.key}>
+              <div className="type-caption" style={{ color: p.color, marginBottom: '8px' }}>{p.label}</div>
+              <p className="type-body" style={{ color: 'var(--ink-charcoal)', margin: '0 0 6px', lineHeight: 1.65 }}>{insight[p.key]?.taste_profile}</p>
+              <p className="type-body" style={{ fontStyle: 'italic', color: 'var(--ink-mist)', margin: 0 }}>💡 {insight[p.key]?.insight}</p>
             </div>
           ))}
-          <div style={{ background: 'rgba(107,142,58,0.3)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(107,142,58,0.4)' }}>
-            <div style={{ fontSize: '12px', fontWeight: '700', color: '#fff', marginBottom: '6px' }}>🥂 함께 즐기기 좋은 와인</div>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.6' }}>{insight.pairing}</div>
+          <div style={{ height: 1, background: 'rgba(200,184,154,0.4)' }}/>
+          <div>
+            <div className="type-micro" style={{ color: 'var(--ink-olive)', marginBottom: '8px' }}>PAIRING SUGGESTION</div>
+            <p className="type-body" style={{ color: 'var(--ink-charcoal)', margin: 0, lineHeight: 1.65 }}>🥂 {insight.pairing}</p>
           </div>
-          <div style={{ background: 'rgba(200,169,81,0.2)', borderRadius: '12px', padding: '14px', border: '1px solid rgba(200,169,81,0.3)' }}>
-            <div style={{ fontSize: '12px', fontWeight: '700', color: '#C8A951', marginBottom: '6px' }}>🎯 발견한 사실</div>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', lineHeight: '1.6' }}>{insight.fun_fact}</div>
+          <div>
+            <div className="type-micro" style={{ color: 'var(--ink-ochre)', marginBottom: '8px' }}>FUN FACT</div>
+            <p className="type-body" style={{ color: 'var(--ink-charcoal)', margin: 0, lineHeight: 1.65 }}>🎯 {insight.fun_fact}</p>
           </div>
-          <button onClick={onFetch} style={{ padding: '10px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)', fontSize: '12px', cursor: 'pointer', fontFamily: "'Pretendard', sans-serif" }}>
-            🔄 다시 분석하기
+          <button onClick={onFetch} className="type-micro" style={{ padding: '10px', borderRadius: 'var(--radius-md)', background: 'transparent', border: '1px dashed rgba(200,184,154,0.7)', color: 'var(--ink-mist)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+            ↻ 다시 분석하기
           </button>
         </div>
       )}
-    </div>
+    </section>
   )
 }
