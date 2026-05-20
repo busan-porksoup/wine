@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { ImagePositioner } from './ImagePositioner'
 
 const WINE_TYPES = [
   { value: 'red',       label: '레드',   emoji: '🍷' },
@@ -42,6 +43,7 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
   const [form, setForm] = useState<WineForm>(emptyForm())
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imagePosition, setImagePosition] = useState<string>('50% 50%')
   const [saving, setSaving] = useState(false)
   const [recognizing, setRecognizing] = useState(false)
   const [error, setError] = useState('')
@@ -62,6 +64,7 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
     if (!file) return
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
+    setImagePosition('50% 50%')
     setAiMsg('')
     const d = new Date(file.lastModified)
     setF('drunk_at', `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)
@@ -111,7 +114,7 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
     } catch { return null }
   }
 
-  async function saveOne(formData: WineForm, file: File): Promise<boolean> {
+  async function saveOne(formData: WineForm, file: File, imagePos?: string): Promise<boolean> {
     try {
       let image_url = null
       const ext = file.name.split('.').pop()
@@ -131,6 +134,7 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
         drunk_at: formData.drunk_at || null,
         grape_variety: formData.grape_variety ? formData.grape_variety.split(',').map(s => s.trim()) : null,
         image_url,
+        image_position: imagePos || '50% 50%',
       })
       return !error
     } catch { return false }
@@ -203,7 +207,7 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
     if (!form.name) { setError('와인 이름은 필수예요!'); return }
     setSaving(true)
     setError('')
-    const ok = await saveOne(form, imageFile!)
+    const ok = await saveOne(form, imageFile!, imagePosition)
     setSaving(false)
     if (!ok) { setError('저장 실패!'); return }
     onSaved()
@@ -261,22 +265,25 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
             <>
               <div style={{ marginBottom: '18px' }}>
                 <span style={labelStyle}>와인 사진</span>
-                <label style={{ display: 'block', cursor: 'pointer' }}>
-                  <input type="file" accept="image/*" onChange={handleSingleImage} style={{ display: 'none' }}/>
-                  {imagePreview ? (
-                    <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', height: '160px', border: '1px solid var(--glass-border)' }}>
-                      <img src={imagePreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
-                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(42,36,32,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span className="type-caption" style={{ color: '#fff', background: 'rgba(42,36,32,0.5)', padding: '6px 14px', borderRadius: 'var(--radius-full)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>사진 변경</span>
+                {imagePreview ? (
+                  <>
+                    <ImagePositioner src={imagePreview} value={imagePosition} onChange={setImagePosition} />
+                    <label style={{ display: 'block', cursor: 'pointer', marginTop: '8px' }}>
+                      <input type="file" accept="image/*" onChange={handleSingleImage} style={{ display: 'none' }}/>
+                      <div className="type-micro" style={{ textAlign: 'center', color: 'var(--ink-mist)', padding: '6px', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                        사진 변경
                       </div>
-                    </div>
-                  ) : (
+                    </label>
+                  </>
+                ) : (
+                  <label style={{ display: 'block', cursor: 'pointer' }}>
+                    <input type="file" accept="image/*" onChange={handleSingleImage} style={{ display: 'none' }}/>
                     <div style={{ height: '110px', borderRadius: 'var(--radius-md)', border: '1.5px dashed rgba(200,184,154,0.7)', background: 'rgba(250,246,238,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                       <div style={{ fontSize: '24px', opacity: 0.6 }}>📷</div>
                       <div className="type-caption" style={{ color: 'var(--ink-mist)' }}>사진 추가하기</div>
                     </div>
-                  )}
-                </label>
+                  </label>
+                )}
               </div>
 
               {imageFile && (

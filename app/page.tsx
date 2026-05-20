@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import AddWineModal from './AddWineModal'
 import Analytics from './Analytics'
+import { ImagePositioner } from './ImagePositioner'
 
 const TYPE_BADGE: Record<string, { emoji: string; label: string; bg: string; color: string }> = {
   red:      { emoji: '🍷', label: '레드',   bg: 'rgba(107,31,42,0.10)', color: '#6B1F2A' },
@@ -129,7 +130,7 @@ function WineCard({ wine, index, onClick }: { wine: any; index: number; onClick:
             position: 'absolute', inset: 0,
             width: '100%', height: '100%',
             objectFit: 'cover',
-            objectPosition: 'center bottom',
+            objectPosition: wine.image_position || '50% 50%',
             display: 'block',
           }}/>
       )}
@@ -192,6 +193,7 @@ export default function Home() {
   const [editWineType, setEditWineType] = useState('')
   const [editDrunkAt, setEditDrunkAt] = useState('')
   const [editGrapeVariety, setEditGrapeVariety] = useState('')
+  const [editImagePosition, setEditImagePosition] = useState('50% 50%')
 
   const [selectedFoods, setSelectedFoods] = useState<string[]>([])
   const [foodOpen, setFoodOpen] = useState(false)
@@ -277,6 +279,7 @@ export default function Home() {
     setEditWineType(wine.wine_type || 'red')
     setEditDrunkAt(wine.drunk_at || '')
     setEditGrapeVariety(Array.isArray(wine.grape_variety) ? wine.grape_variety.join(', ') : wine.grape_variety || '')
+    setEditImagePosition(wine.image_position || '50% 50%')
     setSelectedFoods(wine.food_pairings || [])
     setFoodOpen(false)
     setCustomFood('')
@@ -331,6 +334,7 @@ export default function Home() {
         grape_variety: editGrapeVariety ? editGrapeVariety.split(',').map((s: string) => s.trim()) : null,
         food_pairings: selectedFoods.length > 0 ? selectedFoods : null,
         tasting_tags: tastingTags.length > 0 ? tastingTags : null,
+        image_position: editImagePosition,
       })
     }
     const { error } = await supabase.from('wines').update(updateData).eq('id', selected.id)
@@ -496,7 +500,7 @@ export default function Home() {
               position: 'relative', overflow: 'hidden',
               cursor: selected.image_url ? 'zoom-in' : 'default',
             }}>
-              {selected.image_url && <img src={selected.image_url} alt={selected.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>}
+              {selected.image_url && <img src={selected.image_url} alt={selected.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: selected.image_position || '50% 50%' }}/>}
               {selected.image_url && (
                 <div style={{ position: 'absolute', bottom: 16, right: 16, background: 'rgba(42,36,32,0.45)', borderRadius: 'var(--radius-full)', padding: '5px 12px', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
                   <span className="type-micro" style={{ color: '#fff' }}>🔍 크게 보기</span>
@@ -614,6 +618,13 @@ export default function Home() {
                     <div className="type-title-md" style={{ fontStyle: 'italic', color: 'var(--ink-charcoal)' }}>Edit Wine</div>
                     <button onClick={() => setEditMode(false)} className="type-micro" style={{ background: 'none', border: 'none', color: 'var(--ink-mist)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>← 뒤로</button>
                   </div>
+
+                  {selected.image_url && (
+                    <div style={{ marginBottom: '18px' }}>
+                      <span style={labelStyle}>사진 위치 조정</span>
+                      <ImagePositioner src={selected.image_url} value={editImagePosition} onChange={setEditImagePosition} />
+                    </div>
+                  )}
 
                   <div style={{ marginBottom: '14px' }}>
                     <span style={labelStyle}>와인 종류</span>
