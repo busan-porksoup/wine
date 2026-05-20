@@ -134,6 +134,17 @@ body {
 }
 
 /* ============================================
+   MODAL SHEET — hide scrollbar at rounded corners
+   ============================================ */
+.modal-sheet {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.modal-sheet::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
    APP CONTAINER — mobile-first centered column
    ============================================ */
 #app-container {

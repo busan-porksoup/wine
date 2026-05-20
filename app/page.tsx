@@ -128,7 +128,9 @@ function WineCard({ wine, index, onClick }: { wine: any; index: number; onClick:
           style={{
             position: 'absolute', inset: 0,
             width: '100%', height: '100%',
-            objectFit: 'cover', display: 'block',
+            objectFit: 'cover',
+            objectPosition: 'center bottom',
+            display: 'block',
           }}/>
       )}
 
@@ -463,7 +465,7 @@ export default function Home() {
       {/* 상세 모달 — Bottom sheet over hero photo */}
       {selected && (
         <div onClick={() => setSelected(null)} className="modal-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(42,36,32,0.55)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 100 }}>
-          <div onClick={e => e.stopPropagation()} style={{
+          <div onClick={e => e.stopPropagation()} className="modal-sheet" style={{
             width: '100%', maxWidth: '430px', maxHeight: '95vh', overflowY: 'auto',
             background: 'var(--bg-paper)',
             borderTopLeftRadius: 'var(--radius-xl)', borderTopRightRadius: 'var(--radius-xl)',
@@ -471,7 +473,22 @@ export default function Home() {
             position: 'relative',
           }}>
 
-            {/* Hero 사진 (50vh) */}
+            {/* Sticky 닫기 버튼 — 스크롤해도 우상단 고정 */}
+            <div style={{ position: 'sticky', top: 0, height: 0, zIndex: 20, pointerEvents: 'none' }}>
+              <button onClick={e => { e.stopPropagation(); setSelected(null) }} aria-label="닫기" style={{
+                position: 'absolute', top: 16, right: 16,
+                background: 'rgba(42,36,32,0.55)', border: 'none', borderRadius: 'var(--radius-full)',
+                width: 36, height: 36, color: '#fff', fontSize: '14px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                pointerEvents: 'auto',
+                backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              }}>
+                ✕
+              </button>
+            </div>
+
+            {/* Hero 사진 (50vh) — 사진과 본문 일자로 이어짐 */}
             <div onClick={() => selected.image_url && setImageViewerOpen(true)} style={{
               height: '50vh', minHeight: '280px',
               background: selected.image_url ? 'none' : 'linear-gradient(160deg, rgba(107,31,42,0.85), rgba(140,42,58,0.75))',
@@ -481,38 +498,15 @@ export default function Home() {
             }}>
               {selected.image_url && <img src={selected.image_url} alt={selected.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>}
               {selected.image_url && (
-                <div style={{ position: 'absolute', bottom: 14, right: 16, background: 'rgba(42,36,32,0.45)', borderRadius: 'var(--radius-full)', padding: '5px 12px', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+                <div style={{ position: 'absolute', bottom: 16, right: 16, background: 'rgba(42,36,32,0.45)', borderRadius: 'var(--radius-full)', padding: '5px 12px', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
                   <span className="type-micro" style={{ color: '#fff' }}>🔍 크게 보기</span>
                 </div>
               )}
-              <button onClick={e => { e.stopPropagation(); handleDelete() }} disabled={deleting} style={{
-                position: 'absolute', top: 16, right: 16,
-                background: 'rgba(42,36,32,0.45)', border: 'none', borderRadius: 'var(--radius-full)',
-                padding: '6px 14px', color: '#fff', fontSize: '11px', fontWeight: '500', cursor: 'pointer',
-                fontFamily: 'var(--font-sans)', letterSpacing: '0.06em',
-                backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-              }}>
-                {deleting ? '삭제 중…' : '✕ 삭제'}
-              </button>
             </div>
 
-            {/* Sheet 본문 — drag handle + content */}
-            <div style={{
-              position: 'relative',
-              marginTop: '-28px',
-              background: 'var(--bg-paper)',
-              borderTopLeftRadius: 'var(--radius-xl)', borderTopRightRadius: 'var(--radius-xl)',
-              boxShadow: '0 -4px 20px rgba(42,36,32,0.08)',
-              paddingTop: '12px',
-            }}>
-              {/* Drag handle */}
-              <div style={{
-                width: 44, height: 4, borderRadius: 2,
-                background: 'var(--ink-sand)', opacity: 0.6,
-                margin: '0 auto 16px',
-              }}/>
-
-            <div style={{ padding: '0 24px 40px' }}>
+            {/* Sheet 본문 — 사진과 일자로 연결 */}
+            <div style={{ background: 'var(--bg-paper)' }}>
+            <div style={{ padding: '24px 24px 40px' }}>
 
               {/* ── 읽기 모드 ── */}
               {!editMode && (
@@ -699,9 +693,14 @@ export default function Home() {
                     <div className="type-caption" style={{ textAlign: 'center', marginBottom: '14px', color: saveMsg.includes('실패') ? '#B53E2A' : 'var(--ink-olive)' }}>{saveMsg}</div>
                   )}
 
-                  <button onClick={handleSave} disabled={saving} className="type-caption" style={{ width: '100%', padding: '16px', borderRadius: 'var(--radius-md)', background: saving ? 'rgba(138,126,109,0.4)' : 'var(--ink-bordeaux)', border: 'none', color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
-                    {saving ? 'Saving…' : 'Save'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button onClick={handleDelete} disabled={deleting} className="type-caption" style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-md)', background: 'transparent', border: '1px solid rgba(181,62,42,0.4)', color: '#B53E2A', cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      {deleting ? 'Deleting…' : 'Delete'}
+                    </button>
+                    <button onClick={handleSave} disabled={saving} className="type-caption" style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-md)', background: saving ? 'rgba(138,126,109,0.4)' : 'var(--ink-bordeaux)', border: 'none', color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      {saving ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
                 </>
               )}
             </div>
