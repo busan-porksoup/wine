@@ -3,7 +3,9 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import AddWineModal from './AddWineModal'
 import Analytics from './Analytics'
-import { ImagePositioner } from './ImagePositioner'
+import Blog from './Blog'
+import { ImagePositioner, parseImagePosition } from './ImagePositioner'
+import { WineInfo, WineInfoToggle } from './WineInfo'
 
 const TYPE_BADGE: Record<string, { emoji: string; label: string; bg: string; color: string }> = {
   red:      { emoji: '🍷', label: '레드',   bg: 'rgba(107,31,42,0.10)', color: '#6B1F2A' },
@@ -22,14 +24,10 @@ const WINE_TYPES = [
 ]
 
 const FOOD_KEYWORDS = [
-  { group: '육류',       items: ['소고기', '돼지고기', '양고기', '닭고기'] },
-  { group: '해산물',     items: ['해산물', '생선', '굴'] },
-  { group: '패스트푸드', items: ['피자', '햄버거', '파스타'] },
-  { group: '기타',       items: ['치즈', '샐러드', '디저트'] },
+  { group: '육류',   items: ['소고기', '돼지고기', '양고기', '닭고기'] },
+  { group: '해산물', items: ['해산물', '생선', '굴'] },
+  { group: '기타',   items: ['피자', '햄버거', '파스타', '빵', '치즈', '샐러드', '샤퀴테리'] },
 ]
-
-const STAR_COLOR = '#6B1F2A'
-const STAR_EMPTY = '#E2D8C8'
 
 const inputStyle = {
   width: '100%', padding: '10px 12px', borderRadius: '10px',
@@ -44,32 +42,6 @@ const labelStyle = {
   letterSpacing: '0.14em', textTransform: 'uppercase' as const,
   marginBottom: '6px', display: 'block',
   fontFamily: 'var(--font-sans)',
-}
-
-function Stars({ rating, size, onChange }: { rating: number; size: number; onChange?: (v: number) => void }) {
-  return (
-    <div style={{ display: 'flex', gap: '2px' }}>
-      {[1,2,3,4,5].map(s => (
-        <svg key={s} width={size} height={size} viewBox="0 0 24 24"
-          fill={s <= rating ? STAR_COLOR : STAR_EMPTY}
-          style={{ cursor: onChange ? 'pointer' : 'default', flexShrink: 0 }}
-          onClick={() => onChange?.(s)}>
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-        </svg>
-      ))}
-    </div>
-  )
-}
-
-function Avatar({ name, gradient }: { name: string; gradient: string }) {
-  return (
-    <div style={{
-      width: '32px', height: '32px', borderRadius: '50%',
-      background: gradient, flexShrink: 0,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: '11px', color: '#fff', fontWeight: '700', letterSpacing: '-0.5px',
-    }}>{name}</div>
-  )
 }
 
 // 스크롤 진입 감지 훅
@@ -124,16 +96,21 @@ function WineCard({ wine, index, onClick }: { wine: any; index: number; onClick:
         transition: `opacity 0.55s var(--ease-out-soft) ${delay}ms, transform 0.55s var(--ease-out-soft) ${delay}ms`,
       }}
     >
-      {wine.image_url && (
-        <img src={wine.image_url} alt={wine.name}
-          style={{
-            position: 'absolute', inset: 0,
-            width: '100%', height: '100%',
-            objectFit: 'cover',
-            objectPosition: wine.image_position || '50% 50%',
-            display: 'block',
-          }}/>
-      )}
+      {wine.image_url && (() => {
+        const p = parseImagePosition(wine.image_position)
+        return (
+          <img src={wine.image_url} alt={wine.name}
+            style={{
+              position: 'absolute', inset: 0,
+              width: '100%', height: '100%',
+              objectFit: 'cover',
+              objectPosition: `${p.x}% ${p.y}%`,
+              transform: p.zoom > 1.005 ? `scale(${p.zoom})` : undefined,
+              transformOrigin: 'center center',
+              display: 'block',
+            }}/>
+        )
+      })()}
 
       {/* 하단 글래스 패널 */}
       <div style={{
@@ -160,10 +137,9 @@ function WineCard({ wine, index, onClick }: { wine: any; index: number; onClick:
         }}>
           {wine.name}
         </h3>
-        <div className="type-caption" style={{ color: 'var(--ink-mist)', marginBottom: '8px' }}>
+        <div className="type-caption" style={{ color: 'var(--ink-mist)' }}>
           {[b?.label, wine.region, wine.country].filter(Boolean).join(' · ')}
         </div>
-        <Stars rating={wine.rating || 0} size={13} />
       </div>
     </article>
   )
@@ -395,14 +371,14 @@ export default function Home() {
 
       {/* 탭 — italic serif + underline */}
       <div style={{ display: 'flex', gap: '28px', padding: '0 24px', borderBottom: '1px solid rgba(200,184,154,0.4)' }}>
-        {['홈', '분석'].map(tab => (
+        {['홈', '분석', 'Blog'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`tab-btn ${activeTab === tab ? 'is-active' : ''}`}
             aria-selected={activeTab === tab}
           >
-            {tab === '홈' ? 'Home' : 'Analysis'}
+            {tab === '홈' ? 'Home' : tab === '분석' ? 'Analysis' : 'Blog'}
           </button>
         ))}
       </div>
@@ -444,6 +420,8 @@ export default function Home() {
       )}
 
       {activeTab === '분석' && <Analytics wines={wines} />}
+
+      {activeTab === 'Blog' && <Blog />}
 
       {/* + 버튼 — Bordeaux solid */}
       <button onClick={() => setShowAdd(true)} aria-label="와인 추가" style={{
@@ -504,7 +482,18 @@ export default function Home() {
               position: 'relative', overflow: 'hidden',
               cursor: selected.image_url ? 'zoom-in' : 'default',
             }}>
-              {selected.image_url && <img src={selected.image_url} alt={selected.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: selected.image_position || '50% 50%' }}/>}
+              {selected.image_url && (() => {
+                const p = parseImagePosition(selected.image_position)
+                return (
+                  <img src={selected.image_url} alt={selected.name} style={{
+                    width: '100%', height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: `${p.x}% ${p.y}%`,
+                    transform: p.zoom > 1.005 ? `scale(${p.zoom})` : undefined,
+                    transformOrigin: 'center center',
+                  }}/>
+                )
+              })()}
               {selected.image_url && (
                 <div style={{ position: 'absolute', bottom: 16, right: 16, background: 'rgba(42,36,32,0.45)', borderRadius: 'var(--radius-full)', padding: '5px 12px', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
                   <span className="type-micro" style={{ color: '#fff' }}>🔍 크게 보기</span>
@@ -531,9 +520,6 @@ export default function Home() {
                     <p className="type-body" style={{ fontStyle: 'italic', color: 'var(--ink-mist)', margin: '0 0 14px' }}>
                       — {formatEditorialDate(selected.drunk_at)} —
                     </p>
-                    <div style={{ display: 'inline-flex' }}>
-                      <Stars rating={Math.round(avgRating)} size={22} />
-                    </div>
                   </div>
 
                   {selected.grape_variety?.length > 0 && (
@@ -542,7 +528,18 @@ export default function Home() {
                     </p>
                   )}
 
-                  <div style={{ height: 1, background: 'rgba(200,184,154,0.5)', marginBottom: '20px' }}/>
+                  {/* 와인 정보 토글 (기본 OFF) — borderTop이 위 섹션과의 1줄 구분 */}
+                  <WineInfoToggle>
+                    {() => (
+                      <WineInfo
+                        data={selected.wine_info || null}
+                        region={selected.region}
+                        country={selected.country}
+                        vintageYear={selected.vintage_year}
+                        onGenerate={() => alert('AI 정보 생성 기능 준비 중입니다.')}
+                      />
+                    )}
+                  </WineInfoToggle>
 
                   {/* 테이스팅 노트 */}
                   <div style={{ marginBottom: '20px' }}>
@@ -585,20 +582,18 @@ export default function Home() {
 
                   {/* 한줄평 — 재혁 */}
                   <div style={{ marginBottom: '18px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
-                      <Avatar name="재혁" gradient="linear-gradient(135deg, var(--ink-bordeaux), var(--ink-burgundy))" />
-                      <Stars rating={ratingJ} size={20} onChange={setRatingJ} />
-                      <span className="type-micro" style={{ color: 'var(--ink-mist)' }}>{ratingJ > 0 ? ratingJ + '.0' : '—'}</span>
+                    <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '13px', color: 'var(--ink-charcoal)', marginBottom: '8px', letterSpacing: '-0.01em' }}>재혁</div>
+                    <div style={{ display: 'flex', background: 'rgba(200,184,154,0.10)', borderRadius: '0 var(--radius-md) var(--radius-md) 0', overflow: 'hidden' }}>
+                      <div style={{ width: 3, background: 'var(--ink-bordeaux)', flexShrink: 0, opacity: 0.85 }}/>
+                      <textarea value={memoJ} onChange={e => setMemoJ(e.target.value)} placeholder="한 줄 평을 적어주세요…" style={{ flex: 1, minHeight: '56px', border: 'none', background: 'transparent', padding: '12px 14px', fontSize: '14px', resize: 'none', fontFamily: 'var(--font-sans)', boxSizing: 'border-box', color: 'var(--ink-charcoal)', outline: 'none', lineHeight: 1.6 }}/>
                     </div>
-                    <textarea value={memoJ} onChange={e => setMemoJ(e.target.value)} placeholder="재혁의 한 줄 평…" style={{ width: '100%', height: '70px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(200,184,154,0.5)', padding: '12px 14px', fontSize: '14px', resize: 'none', fontFamily: 'var(--font-sans)', boxSizing: 'border-box', color: 'var(--ink-charcoal)', background: 'rgba(250,246,238,0.7)', outline: 'none', lineHeight: 1.5 }}/>
                   </div>
                   <div style={{ marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
-                      <Avatar name="원우" gradient="linear-gradient(135deg, var(--ink-olive), #7A8E54)" />
-                      <Stars rating={ratingW} size={20} onChange={setRatingW} />
-                      <span className="type-micro" style={{ color: 'var(--ink-mist)' }}>{ratingW > 0 ? ratingW + '.0' : '—'}</span>
+                    <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '13px', color: 'var(--ink-charcoal)', marginBottom: '8px', letterSpacing: '-0.01em' }}>원우</div>
+                    <div style={{ display: 'flex', background: 'rgba(200,184,154,0.10)', borderRadius: '0 var(--radius-md) var(--radius-md) 0', overflow: 'hidden' }}>
+                      <div style={{ width: 3, background: 'var(--ink-olive)', flexShrink: 0, opacity: 0.85 }}/>
+                      <textarea value={memoW} onChange={e => setMemoW(e.target.value)} placeholder="한 줄 평을 적어주세요…" style={{ flex: 1, minHeight: '56px', border: 'none', background: 'transparent', padding: '12px 14px', fontSize: '14px', resize: 'none', fontFamily: 'var(--font-sans)', boxSizing: 'border-box', color: 'var(--ink-charcoal)', outline: 'none', lineHeight: 1.6 }}/>
                     </div>
-                    <textarea value={memoW} onChange={e => setMemoW(e.target.value)} placeholder="원우의 한 줄 평…" style={{ width: '100%', height: '70px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(200,184,154,0.5)', padding: '12px 14px', fontSize: '14px', resize: 'none', fontFamily: 'var(--font-sans)', boxSizing: 'border-box', color: 'var(--ink-charcoal)', background: 'rgba(250,246,238,0.7)', outline: 'none', lineHeight: 1.5 }}/>
                   </div>
 
                   {saveMsg && (

@@ -303,9 +303,6 @@ export default function Analytics({ wines }: { wines: any[] }) {
     }, {} as Record<string, number>)
   ).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 10).map(([name, count]) => ({ name, count: count as number }))
 
-  const ratedCount = wines.filter(w => w.rating).length
-  const avgRating = ratedCount > 0
-    ? wines.reduce((a, w) => a + (w.rating || 0), 0) / ratedCount : 0
   const countriesCount = new Set(wines.map(w => w.country).filter(Boolean)).size
   const regionsCount = new Set(wines.map(w => w.region).filter(Boolean)).size
 
@@ -318,14 +315,9 @@ export default function Analytics({ wines }: { wines: any[] }) {
         <h2 className="type-display-1" style={{ color: 'var(--ink-charcoal)', margin: '0 0 6px', fontSize: '56px' }}>
           {numberToWord(wines.length)}
         </h2>
-        <p className="type-display-2" style={{ color: 'var(--ink-charcoal)', margin: '0 0 18px', fontSize: '32px', fontStyle: 'italic', fontWeight: 300 }}>
+        <p className="type-display-2" style={{ color: 'var(--ink-charcoal)', margin: 0, fontSize: '32px', fontStyle: 'italic', fontWeight: 300 }}>
           bottles.
         </p>
-        <div className="type-micro" style={{ color: 'var(--ink-mist)' }}>
-          AVERAGE · <span className="type-title-md" style={{ fontStyle: 'italic', color: 'var(--ink-bordeaux)', fontSize: '16px', letterSpacing: 0 }}>
-            {ratedCount > 0 ? <CountUp to={avgRating} decimals={1} /> : '—'}
-          </span> / 5 ★
-        </div>
       </section>
 
       {/* 요약 수치 — 2개 글래스 카드 */}
