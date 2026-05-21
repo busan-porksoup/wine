@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
 import { supabase } from '../lib/supabase'
 import AddWineModal from './AddWineModal'
 import Analytics from './Analytics'
@@ -406,7 +405,6 @@ export default function Home() {
             {tab === '홈' ? 'Home' : 'Analysis'}
           </button>
         ))}
-        <Link href="/wishlist" className="tab-btn">Wishlist</Link>
       </div>
 
       {/* 홈 탭 */}
