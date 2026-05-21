@@ -44,6 +44,86 @@ const labelStyle = {
   fontFamily: 'var(--font-sans)',
 }
 
+// 일괄 와인 정보 생성 배너 (분석 탭 상단)
+function WineInfoMigration({ wines, onComplete }: { wines: any[]; onComplete: () => void }) {
+  const needsInfo = wines.filter(w => !w.wine_info)
+  const [running, setRunning] = useState(false)
+  const [progress, setProgress] = useState({ done: 0, total: 0, failed: 0 })
+
+  if (needsInfo.length === 0 && !running) return null
+
+  async function run() {
+    setRunning(true)
+    setProgress({ done: 0, total: needsInfo.length, failed: 0 })
+    let done = 0, failed = 0
+    for (const wine of needsInfo) {
+      try {
+        const res = await fetch('/api/wine-info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: wine.name,
+            producer: wine.producer,
+            region: wine.region,
+            country: wine.country,
+            vintage_year: wine.vintage_year,
+            grape_variety: wine.grape_variety,
+            wine_type: wine.wine_type,
+          }),
+        })
+        const result = await res.json()
+        if (result.success && result.wine_info) {
+          await supabase.from('wines').update({ wine_info: result.wine_info }).eq('id', wine.id)
+          done++
+        } else {
+          failed++
+        }
+      } catch {
+        failed++
+      }
+      setProgress({ done, total: needsInfo.length, failed })
+    }
+    setRunning(false)
+    onComplete()
+  }
+
+  if (running) {
+    const pct = progress.total > 0 ? Math.round((progress.done + progress.failed) / progress.total * 100) : 0
+    return (
+      <div className="glass-card glass-card--light" style={{ padding: '18px 20px', marginBottom: '16px' }}>
+        <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '8px' }}>AI 와인 정보 생성 중</div>
+        <div className="type-body" style={{ color: 'var(--ink-charcoal)', marginBottom: '12px', fontStyle: 'italic' }}>
+          {progress.done + progress.failed} / {progress.total} 처리 — 페이지를 닫지 마세요
+        </div>
+        <div style={{ height: 4, background: 'rgba(200,184,154,0.3)', borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--ink-bordeaux)', transition: 'width 0.4s ease' }}/>
+        </div>
+        {progress.failed > 0 && (
+          <div className="type-micro" style={{ color: 'var(--ink-mist)', marginTop: '8px' }}>
+            {progress.failed}개 실패 — 끝나면 다시 시도해보세요
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="glass-card glass-card--light" style={{ padding: '18px 20px', marginBottom: '16px' }}>
+      <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '6px' }}>AI 와인 정보</div>
+      <div className="type-body" style={{ color: 'var(--ink-charcoal)', marginBottom: '12px', fontStyle: 'italic' }}>
+        {needsInfo.length}개 와인에 떼루아·생산자 정보가 아직 없어요
+      </div>
+      <button onClick={run} className="type-caption" style={{
+        padding: '10px 18px', borderRadius: 'var(--radius-md)',
+        background: 'var(--ink-bordeaux)', border: 'none', color: '#fff',
+        cursor: 'pointer', fontFamily: 'var(--font-sans)',
+      }}>
+        ✨ 일괄 생성
+      </button>
+    </div>
+  )
+}
+
 // 스크롤 진입 감지 훅
 function useScrollVisible(threshold = 0.1) {
   const ref = useRef<HTMLDivElement>(null)
@@ -180,6 +260,8 @@ export default function Home() {
   const [tastingTags, setTastingTags] = useState<string[]>([])
   const [tastingLoading, setTastingLoading] = useState(false)
 
+  const [wineInfoLoading, setWineInfoLoading] = useState(false)
+
   // AI 배너 멘트
   const [bannerMsg, setBannerMsg] = useState('')
   const [bannerRec, setBannerRec] = useState('')
@@ -266,7 +348,35 @@ export default function Home() {
     setTastingTags(wine.tasting_tags || [])
     setSaveMsg('')
     setImageViewerOpen(false)
+    setWineInfoLoading(false)
     if (!wine.tasting_tags || wine.tasting_tags.length === 0) generateTastingNotes(wine)
+    if (!wine.wine_info) generateWineInfo(wine)
+  }
+
+  async function generateWineInfo(wine: any) {
+    setWineInfoLoading(true)
+    try {
+      const res = await fetch('/api/wine-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: wine.name,
+          producer: wine.producer,
+          region: wine.region,
+          country: wine.country,
+          vintage_year: wine.vintage_year,
+          grape_variety: wine.grape_variety,
+          wine_type: wine.wine_type,
+        }),
+      })
+      const result = await res.json()
+      if (result.success && result.wine_info) {
+        await supabase.from('wines').update({ wine_info: result.wine_info }).eq('id', wine.id)
+        setSelected((prev: any) => prev?.id === wine.id ? { ...prev, wine_info: result.wine_info } : prev)
+        setWines(prev => prev.map(w => w.id === wine.id ? { ...w, wine_info: result.wine_info } : w))
+      }
+    } catch {}
+    setWineInfoLoading(false)
   }
 
   async function generateTastingNotes(wine: any) {
@@ -419,7 +529,14 @@ export default function Home() {
         </>
       )}
 
-      {activeTab === '분석' && <Analytics wines={wines} />}
+      {activeTab === '분석' && (
+        <>
+          <div style={{ padding: '16px 16px 0' }}>
+            <WineInfoMigration wines={wines} onComplete={fetchWines} />
+          </div>
+          <Analytics wines={wines} />
+        </>
+      )}
 
       {activeTab === 'Blog' && <Blog />}
 
@@ -536,7 +653,9 @@ export default function Home() {
                         region={selected.region}
                         country={selected.country}
                         vintageYear={selected.vintage_year}
-                        onGenerate={() => alert('AI 정보 생성 기능 준비 중입니다.')}
+                        loading={wineInfoLoading}
+                        generating={wineInfoLoading}
+                        onGenerate={() => generateWineInfo(selected)}
                       />
                     )}
                   </WineInfoToggle>

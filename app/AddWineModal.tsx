@@ -124,7 +124,7 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
         const { data: urlData } = supabase.storage.from('wine-images').getPublicUrl(fileName)
         image_url = urlData.publicUrl
       }
-      const { error } = await supabase.from('wines').insert({
+      const insertPayload = {
         name: formData.name,
         producer: formData.producer || null,
         country: formData.country || null,
@@ -135,8 +135,37 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
         grape_variety: formData.grape_variety ? formData.grape_variety.split(',').map(s => s.trim()) : null,
         image_url,
         image_position: imagePos || '50% 50%',
+      }
+      const { data: inserted, error } = await supabase
+        .from('wines')
+        .insert(insertPayload)
+        .select('id')
+        .single()
+      if (error || !inserted) return false
+
+      // 백그라운드로 wine_info 생성 (응답 대기 안 함)
+      fetch('/api/wine-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          producer: formData.producer,
+          country: formData.country,
+          region: formData.region,
+          vintage_year: formData.vintage_year ? parseInt(formData.vintage_year) : null,
+          grape_variety: formData.grape_variety,
+          wine_type: formData.wine_type,
+        }),
       })
-      return !error
+        .then(r => r.json())
+        .then(result => {
+          if (result.success && result.wine_info) {
+            supabase.from('wines').update({ wine_info: result.wine_info }).eq('id', inserted.id)
+          }
+        })
+        .catch(() => {})
+
+      return true
     } catch { return false }
   }
 

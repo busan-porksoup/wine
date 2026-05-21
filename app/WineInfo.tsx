@@ -32,6 +32,7 @@ type WineInfoProps = {
   vintageYear?: number | null
   onGenerate?: () => void
   generating?: boolean
+  loading?: boolean
 }
 
 export function MiniMap({ query, zoom = 9 }: { query: string; zoom?: number }) {
@@ -115,8 +116,25 @@ function SpecRow({ label, value, last }: { label: string; value: string; last?: 
   )
 }
 
-export function WineInfo({ data, region, country, vintageYear, onGenerate, generating }: WineInfoProps) {
-  // Empty state — no AI data yet
+export function WineInfo({ data, region, country, vintageYear, onGenerate, generating, loading }: WineInfoProps) {
+  // 로딩 중 (자동 호출 진행)
+  if (loading && !data) {
+    return (
+      <div style={{
+        padding: '24px',
+        borderRadius: 'var(--radius-md)',
+        background: 'rgba(250,246,238,0.4)',
+        border: '1px dashed rgba(200,184,154,0.5)',
+        textAlign: 'center',
+      }}>
+        <div className="type-body" style={{ color: 'var(--ink-mist)', fontStyle: 'italic' }}>
+          ✨ AI가 와인 정보를 가져오고 있어요…
+        </div>
+      </div>
+    )
+  }
+
+  // 데이터 없음 + 로딩도 아님 (에러나 미생성 상태)
   if (!data) {
     return (
       <div style={{
