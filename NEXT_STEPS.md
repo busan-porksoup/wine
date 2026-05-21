@@ -40,9 +40,9 @@
 
 ## 알려진 기술 부채
 
-1. **이미지 73MB** — `public/*.webp` 11장이 git 히스토리에. sharp/imagemagick으로 1600px WebP 압축 권장 (8MB → 500KB)
-2. **API 라우트 regex `s` 플래그** — `app/api/tasting/route.ts:48` IDE 에러. tsconfig `target` 을 ES2020으로 올리면 해결
-3. **`next.config.ts` eslint 옵션** — Next 16에서 deprecated. 분리 필요
+1. ~~**이미지 73MB**~~ ✅ 해결 (`scripts/compress-images.mjs`, sharp로 2000px/q90 재인코딩 + 미사용 1장 삭제, 73MB → 6.6MB)
+2. ~~**API 라우트 regex `s` 플래그**~~ ✅ 해결 (tsconfig target ES2017 → ES2020)
+3. ~~**`next.config.ts` eslint 옵션**~~ ✅ 해결 (deprecated 블록 제거)
 
 ## 백업
 
