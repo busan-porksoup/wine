@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
+import { supabase } from '../lib/supabase'
+import { parseImagePosition } from './ImagePositioner'
 
 const WINE_TYPE_LABEL: Record<string, string> = {
   red: 'Red', white: 'White', sparkling: 'Champagne', rosé: 'Rosé', dessert: 'Dessert',
@@ -275,7 +277,277 @@ function VintageSection({ data }: { data: { name: string; count: number }[] }) {
   )
 }
 
-export default function Analytics({ wines }: { wines: any[] }) {
+// ── 헬퍼: 미니 와인 카드 (Year in Wine 월별 확장용) ──
+const TYPE_EMOJI: Record<string, string> = {
+  red: '🍷', white: '🥂', sparkling: '🍾', rosé: '🌸', dessert: '🍯',
+}
+
+function fmtMD(iso?: string) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+  return `${d.getDate()} ${months[d.getMonth()]}`
+}
+
+function MiniWineCard({ wine, onClick }: { wine: any; onClick: () => void }) {
+  const p = parseImagePosition(wine.image_position)
+  return (
+    <button onClick={onClick} style={{
+      position: 'relative',
+      aspectRatio: '4 / 5',
+      borderRadius: 'var(--radius-md)',
+      overflow: 'hidden',
+      boxShadow: 'var(--shadow-soft)',
+      cursor: 'pointer',
+      background: wine.image_url ? 'none' : 'linear-gradient(135deg, rgba(107,31,42,0.85), rgba(140,42,58,0.65))',
+      border: 'none', padding: 0,
+      textAlign: 'left', fontFamily: 'inherit', color: 'inherit',
+    }}>
+      {wine.image_url ? (
+        <img src={wine.image_url} alt={wine.name} style={{
+          position: 'absolute', inset: 0,
+          width: '100%', height: '100%',
+          objectFit: 'cover',
+          objectPosition: `${p.x}% ${p.y}%`,
+          transform: p.zoom > 1.005 ? `scale(${p.zoom})` : undefined,
+          transformOrigin: 'center center',
+        }}/>
+      ) : (
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '40px', opacity: 0.4,
+        }}>{TYPE_EMOJI[wine.wine_type] || '🍷'}</div>
+      )}
+      <div style={{
+        position: 'absolute', left: 8, right: 8, bottom: 8,
+        background: 'rgba(250,246,238,0.78)',
+        backdropFilter: 'blur(18px) saturate(1.15)',
+        WebkitBackdropFilter: 'blur(18px) saturate(1.15)',
+        border: '1px solid rgba(255,255,255,0.4)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '8px 10px',
+      }}>
+        <div className="type-micro" style={{
+          color: 'var(--ink-mist)', marginBottom: '2px',
+          fontSize: '9px', letterSpacing: '0.1em',
+        }}>{fmtMD(wine.drunk_at)}</div>
+        <div style={{
+          fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+          fontSize: '12px', color: 'var(--ink-charcoal)',
+          lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{wine.name}</div>
+      </div>
+    </button>
+  )
+}
+
+// ── 확장 가능한 A Year in Wine 차트 ──
+function ExpandableYearChart({ monthData, wines, onOpenWine }: {
+  monthData: { name: string; count: number }[]
+  wines: any[]
+  onOpenWine?: (wine: any) => void
+}) {
+  const { ref, visible } = useScrollVisible()
+  const [expanded, setExpanded] = useState<string | null>(null)
+
+  const expandedWines = expanded
+    ? wines.filter(w => {
+        if (!w.drunk_at) return false
+        return w.drunk_at.slice(2, 7) === expanded
+      }).sort((a, b) => (b.drunk_at || '').localeCompare(a.drunk_at || ''))
+    : []
+
+  return (
+    <section ref={ref} className="glass-card glass-card--light" style={{
+      padding: '22px', marginBottom: '20px',
+      opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(16px)',
+      transition: 'opacity 0.55s var(--ease-out-soft), transform 0.55s var(--ease-out-soft)',
+    }}>
+      <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '14px' }}>A Year in Wine</div>
+
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
+        <div style={{ minWidth: Math.max(monthData.length * 48, 320) + 'px' }}>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={monthData} margin={{ top: 10, right: 8, left: -24, bottom: 0 }}>
+              <defs>
+                <linearGradient id="areaGradExp" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#6B1F2A" stopOpacity={0.28}/>
+                  <stop offset="100%" stopColor="#6B1F2A" stopOpacity={0.0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="2 6" stroke="rgba(200,184,154,0.4)" vertical={false}/>
+              <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#8A7E6D' }} axisLine={false} tickLine={false} interval={0}/>
+              <YAxis tick={{ fontSize: 10, fill: '#8A7E6D' }} axisLine={false} tickLine={false} allowDecimals={false}/>
+              <Tooltip
+                contentStyle={{ borderRadius: '12px', border: '1px solid rgba(200,184,154,0.5)', boxShadow: '0 4px 16px rgba(107,31,42,0.10)', fontSize: '12px', background: 'rgba(250,246,238,0.95)' }}
+                formatter={(v) => [v + '병', '와인 수']}
+              />
+              <Area
+                type="monotone"
+                dataKey="count"
+                stroke="#6B1F2A"
+                strokeWidth={2}
+                fill="url(#areaGradExp)"
+                dot={(props: any) => {
+                  const monthName = props.payload.name
+                  const isExpanded = monthName === expanded
+                  return (
+                    <g key={`dot-${monthName}`} style={{ cursor: 'pointer' }} onClick={() => setExpanded(isExpanded ? null : monthName)}>
+                      <circle cx={props.cx} cy={props.cy} r={18} fill="transparent" />
+                      <circle
+                        cx={props.cx} cy={props.cy}
+                        r={isExpanded ? 7 : 4}
+                        fill={isExpanded ? '#fff' : '#6B1F2A'}
+                        stroke="#6B1F2A"
+                        strokeWidth={isExpanded ? 2.5 : 0}
+                      />
+                    </g>
+                  )
+                }}
+                activeDot={false as any}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {expanded && expandedWines.length > 0 && (
+        <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(200,184,154,0.4)' }}>
+          <div className="type-micro" style={{ color: 'var(--ink-mist)', textTransform: 'none', letterSpacing: 0, marginBottom: '12px', fontStyle: 'italic' }}>
+            {expanded}에 마신 {expandedWines.length}병
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+            {expandedWines.map(wine => (
+              <MiniWineCard key={wine.id} wine={wine} onClick={() => onOpenWine?.(wine)} />
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ── Quiz 통계 카드 (응시자별 좌우 분할) ──
+type QuizUserStats = {
+  total: number
+  accuracy: number
+  strong: string[]
+  weak: string[]
+}
+
+function QuizStatColumn({ name, stats }: { name: string; stats: QuizUserStats | null }) {
+  if (!stats || stats.total === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{
+          fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '14px',
+          color: 'var(--ink-charcoal)', letterSpacing: '-0.01em',
+        }}>{name}</div>
+        <div className="type-micro" style={{ color: 'var(--ink-mist)', fontStyle: 'italic', textTransform: 'none', letterSpacing: 0 }}>
+          아직 응시 기록 없음
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{
+        fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '14px',
+        color: 'var(--ink-charcoal)', letterSpacing: '-0.01em',
+      }}>{name}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+        <span className="type-title-md" style={{
+          fontStyle: 'italic', color: 'var(--ink-bordeaux)',
+          fontSize: '24px', letterSpacing: 0,
+        }}>
+          {stats.accuracy}<span style={{ fontSize: '13px', color: 'var(--ink-mist)' }}>%</span>
+        </span>
+        <span className="type-micro" style={{ color: 'var(--ink-mist)' }}>
+          / {stats.total}문항
+        </span>
+      </div>
+      {stats.strong.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+            <span style={{ color: 'var(--ink-olive)', fontSize: '11px' }}>↑</span>
+            <span className="type-micro" style={{ color: 'var(--ink-mist)', textTransform: 'none', letterSpacing: 0, fontSize: '10px' }}>강점</span>
+          </div>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: 'var(--ink-charcoal)', lineHeight: 1.4 }}>
+            {stats.strong.join(' · ')}
+          </span>
+        </div>
+      )}
+      {stats.weak.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+            <span style={{ color: '#B53E2A', fontSize: '11px' }}>↓</span>
+            <span className="type-micro" style={{ color: 'var(--ink-mist)', textTransform: 'none', letterSpacing: 0, fontSize: '10px' }}>약점</span>
+          </div>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: 'var(--ink-charcoal)', lineHeight: 1.4 }}>
+            {stats.weak.join(' · ')}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function QuizStatsCard() {
+  const [stats, setStats] = useState<Record<string, QuizUserStats | null>>({ 재혁: null, 원우: null })
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from('quiz_attempts')
+        .select('user_name, category, is_correct')
+      if (!data) return
+
+      const computed: Record<string, QuizUserStats | null> = { 재혁: null, 원우: null }
+      for (const name of ['재혁', '원우']) {
+        const rows = data.filter(d => d.user_name === name)
+        if (rows.length === 0) { computed[name] = null; continue }
+        const total = rows.length
+        const accuracy = Math.round(rows.filter(r => r.is_correct).length / total * 100)
+        // category accuracy (min 3 attempts in that category)
+        const byCat: Record<string, { total: number; correct: number }> = {}
+        for (const r of rows) {
+          const c = r.category || '기타'
+          if (!byCat[c]) byCat[c] = { total: 0, correct: 0 }
+          byCat[c].total++
+          if (r.is_correct) byCat[c].correct++
+        }
+        const catList = Object.entries(byCat)
+          .filter(([_, v]) => v.total >= 3)
+          .map(([c, v]) => ({ category: c, accuracy: v.correct / v.total }))
+          .sort((a, b) => b.accuracy - a.accuracy)
+        computed[name] = {
+          total, accuracy,
+          strong: catList.slice(0, 2).map(c => c.category),
+          weak: catList.slice(-2).reverse().map(c => c.category).filter(c => !catList.slice(0, 2).map(x => x.category).includes(c)),
+        }
+      }
+      setStats(computed)
+    }
+    load()
+  }, [])
+
+  return (
+    <section className="glass-card glass-card--light" style={{ padding: '22px', marginBottom: '20px' }}>
+      <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '16px' }}>Quiz · 응시 통계</div>
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1px 1fr',
+        gap: '18px', alignItems: 'stretch',
+      }}>
+        <QuizStatColumn name="재혁" stats={stats.재혁} />
+        <div style={{ background: 'rgba(200,184,154,0.4)' }}/>
+        <QuizStatColumn name="원우" stats={stats.원우} />
+      </div>
+    </section>
+  )
+}
+
+export default function Analytics({ wines, onOpenWine }: { wines: any[]; onOpenWine?: (wine: any) => void }) {
   const [insight, setInsight] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [insightError, setInsightError] = useState('')
@@ -380,31 +652,8 @@ export default function Analytics({ wines }: { wines: any[] }) {
         </div>
       </section>
 
-      {/* A Year in Wine — 월별 추이 */}
-      <Section caption="A Year in Wine" delay={0}>
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', margin: '0 -8px' }}>
-          <div style={{ minWidth: Math.max(monthData.length * 48, 320) + 'px' }}>
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={monthData} margin={{ top: 10, right: 8, left: -24, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6B1F2A" stopOpacity={0.28}/>
-                    <stop offset="100%" stopColor="#6B1F2A" stopOpacity={0.0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="2 6" stroke="rgba(200,184,154,0.4)" vertical={false}/>
-                <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#8A7E6D' }} axisLine={false} tickLine={false} interval={0}/>
-                <YAxis tick={{ fontSize: 10, fill: '#8A7E6D' }} axisLine={false} tickLine={false} allowDecimals={false}/>
-                <Tooltip
-                  contentStyle={{ borderRadius: '12px', border: '1px solid rgba(200,184,154,0.5)', boxShadow: '0 4px 16px rgba(107,31,42,0.10)', fontSize: '12px', background: 'rgba(250,246,238,0.95)' }}
-                  formatter={(v) => [v + '병', '와인 수']}
-                />
-                <Area type="monotone" dataKey="count" stroke="#6B1F2A" strokeWidth={2} fill="url(#areaGrad)" dot={{ fill: '#6B1F2A', r: 3, strokeWidth: 0 }} activeDot={{ r: 5, fill: '#6B1F2A' }}/>
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </Section>
+      {/* A Year in Wine — 월별 추이 (월 클릭 시 와인 카드 확장) */}
+      <ExpandableYearChart monthData={monthData} wines={wines} onOpenWine={onOpenWine} />
 
       {/* By Type — 가로 막대 (도넛 대체) */}
       <section className="glass-card glass-card--light" style={{ padding: '22px', marginBottom: '20px' }}>
@@ -449,6 +698,8 @@ export default function Analytics({ wines }: { wines: any[] }) {
       {foodData.length > 0 && (
         <BarSection caption="Paired Most Often" data={foodData} accent="var(--ink-ochre)" unit="회" labelEmoji={FOOD_EMOJI} delay={0} />
       )}
+
+      <QuizStatsCard />
 
       <AIInsight insight={insight} loading={loading} insightError={insightError} onFetch={fetchInsight} />
     </div>

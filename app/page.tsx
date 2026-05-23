@@ -547,7 +547,7 @@ export default function Home() {
           <div style={{ padding: '16px 16px 0' }}>
             <WineInfoMigration wines={wines} onComplete={fetchWines} />
           </div>
-          <Analytics wines={wines} />
+          <Analytics wines={wines} onOpenWine={openDetail} />
         </>
       )}
 
