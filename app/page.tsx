@@ -498,19 +498,31 @@ export default function Home() {
         <>
           {/* 연도 필터 */}
           <div style={{ padding: '20px 16px 12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {years.map(y => (
-              <button key={y} onClick={() => setYearFilter(y)} className="year-btn btn-ripple" style={{
-                padding: '7px 16px', borderRadius: '20px',
-                border: yearFilter === y ? '1.5px solid var(--ink-bordeaux)' : '1px solid rgba(200,184,154,0.6)',
-                background: yearFilter === y ? 'var(--ink-bordeaux)' : 'rgba(250,246,238,0.6)',
-                color: yearFilter === y ? '#fff' : 'var(--ink-mist)',
-                fontSize: '12px', fontWeight: '500', cursor: 'pointer',
-                letterSpacing: '0.06em',
-                fontFamily: 'var(--font-sans)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-              }}>{y}</button>
-            ))}
+            {years.map(y => {
+              const count = y === '전체기록'
+                ? wines.length
+                : wines.filter(w => w.drunk_at?.startsWith(y)).length
+              return (
+                <button key={y} onClick={() => setYearFilter(y)} className="year-btn btn-ripple" style={{
+                  padding: '7px 14px', borderRadius: '20px',
+                  border: yearFilter === y ? '1.5px solid var(--ink-bordeaux)' : '1px solid rgba(200,184,154,0.6)',
+                  background: yearFilter === y ? 'var(--ink-bordeaux)' : 'rgba(250,246,238,0.6)',
+                  color: yearFilter === y ? '#fff' : 'var(--ink-mist)',
+                  fontSize: '12px', fontWeight: '500', cursor: 'pointer',
+                  letterSpacing: '-0.02em',
+                  fontFamily: 'var(--font-sans)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                }}>
+                  {y}<span style={{
+                    opacity: 0.7,
+                    fontSize: '11px',
+                    marginLeft: '4px',
+                    letterSpacing: '-0.03em',
+                  }}>({count}병)</span>
+                </button>
+              )
+            })}
           </div>
 
           {filteredWines.length === 0 ? (

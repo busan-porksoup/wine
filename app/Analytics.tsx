@@ -16,6 +16,50 @@ const WINE_TYPE_COLOR: Record<string, string> = {
   dessert: '#A06A1A',
 }
 
+// 같은 나라의 다른 표기를 표준 이름으로 통일
+const COUNTRY_ALIASES: Record<string, string> = {
+  // United States
+  'us': 'United States',
+  'usa': 'United States',
+  'u.s.': 'United States',
+  'u.s.a.': 'United States',
+  'united states': 'United States',
+  'united states of america': 'United States',
+  '미국': 'United States',
+  // United Kingdom
+  'uk': 'United Kingdom',
+  'u.k.': 'United Kingdom',
+  'great britain': 'United Kingdom',
+  'britain': 'United Kingdom',
+  'united kingdom': 'United Kingdom',
+  '영국': 'United Kingdom',
+  // South Korea
+  'korea': 'South Korea',
+  'south korea': 'South Korea',
+  '한국': 'South Korea',
+  '대한민국': 'South Korea',
+  // 흔한 영-한 매핑 (한글 표기 → 영문 표준)
+  '프랑스': 'France',
+  '이탈리아': 'Italy',
+  '스페인': 'Spain',
+  '독일': 'Germany',
+  '호주': 'Australia',
+  '칠레': 'Chile',
+  '아르헨티나': 'Argentina',
+  '포르투갈': 'Portugal',
+  '오스트리아': 'Austria',
+  '뉴질랜드': 'New Zealand',
+  '남아프리카': 'South Africa',
+  '그리스': 'Greece',
+  '일본': 'Japan',
+}
+
+function normalizeCountry(name?: string): string {
+  if (!name) return ''
+  const key = name.trim().toLowerCase()
+  return COUNTRY_ALIASES[key] || COUNTRY_ALIASES[name.trim()] || name.trim()
+}
+
 const COUNTRY_FLAG: Record<string, string> = {
   'France': '🇫🇷', 'Italy': '🇮🇹', 'Spain': '🇪🇸', 'Germany': '🇩🇪',
   'USA': '🇺🇸', 'United States': '🇺🇸', 'Australia': '🇦🇺', 'Chile': '🇨🇱',
@@ -271,7 +315,11 @@ export default function Analytics({ wines }: { wines: any[] }) {
   ).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 8).map(([name, count]) => ({ name, count: count as number }))
 
   const countryData = Object.entries(
-    wines.reduce((acc, w) => { if (w.country) acc[w.country] = (acc[w.country] || 0) + 1; return acc }, {} as Record<string, number>)
+    wines.reduce((acc, w) => {
+      const key = normalizeCountry(w.country)
+      if (key) acc[key] = (acc[key] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
   ).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 8)
     .map(([name, count]) => ({ name: countryWithFlag(name), count: count as number }))
 
