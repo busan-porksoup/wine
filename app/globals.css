@@ -134,6 +134,16 @@ body {
 }
 
 /* ============================================
+   RECHARTS — focus outline 제거 (클릭 시 노란 박스 방지)
+   ============================================ */
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-surface,
+.recharts-surface * {
+  outline: none !important;
+}
+
+/* ============================================
    HIDE SCROLLBARS — editorial aesthetic, no track on right edge
    ============================================ */
 html, body, .modal-sheet {

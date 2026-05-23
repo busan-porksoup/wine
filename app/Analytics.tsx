@@ -354,7 +354,9 @@ function ExpandableYearChart({ monthData, wines, onOpenWine }: {
   const expandedWines = expanded
     ? wines.filter(w => {
         if (!w.drunk_at) return false
-        return w.drunk_at.slice(2, 7) === expanded
+        // drunk_at "2026-05-16" → "'26.05" 비교
+        const key = `'${w.drunk_at.slice(2, 4)}.${w.drunk_at.slice(5, 7)}`
+        return key === expanded
       }).sort((a, b) => (b.drunk_at || '').localeCompare(a.drunk_at || ''))
     : []
 
@@ -610,7 +612,10 @@ export default function Analytics({ wines, onOpenWine }: { wines: any[]; onOpenW
       if (w.drunk_at) { const m = w.drunk_at.slice(0, 7); acc[m] = (acc[m] || 0) + 1 }
       return acc
     }, {} as Record<string, number>)
-  ).sort((a, b) => a[0].localeCompare(b[0])).map(([month, count]) => ({ name: month.slice(2), count: count as number }))
+  ).sort((a, b) => a[0].localeCompare(b[0])).map(([month, count]) => ({
+    name: `'${month.slice(2, 4)}.${month.slice(5, 7)}`,
+    count: count as number,
+  }))
 
   const vintageData = Object.entries(
     wines.reduce((acc, w) => { if (w.vintage_year) acc[w.vintage_year] = (acc[w.vintage_year] || 0) + 1; return acc }, {} as Record<string, number>)
