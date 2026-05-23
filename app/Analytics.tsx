@@ -351,7 +351,7 @@ export default function Analytics({ wines }: { wines: any[] }) {
     }, {} as Record<string, number>)
   ).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 10).map(([name, count]) => ({ name, count: count as number }))
 
-  const countriesCount = new Set(wines.map(w => w.country).filter(Boolean)).size
+  const countriesCount = new Set(wines.map(w => normalizeCountry(w.country)).filter(Boolean)).size
   const regionsCount = new Set(wines.map(w => w.region).filter(Boolean)).size
 
   return (

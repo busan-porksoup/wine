@@ -33,12 +33,35 @@ export async function POST(req: NextRequest) {
 5. winemaking 각 필드는 구체적 정보 있을 때만 채우기 (예: 블렌드 비율을 모르면 blend 필드 omit)
 6. 마크다운 절대 금지. 순수 JSON만.
 
+[map_query / map_zoom 결정 규칙 — 매우 중요]
+와인의 성격에 따라 구글맵에서 보여줄 지역을 다르게 결정해.
+
+A) 광역 블렌드 / 네고시앙 / 여러 지역 포도 사용 (예: DECOY Sauvignon Blanc, Apothic Red)
+   → map_query: 광역 지역명 (예: "California, USA" / "Napa County, California")
+   → map_zoom: 7~9
+
+B) AOC/DOCG 마을·구역 단위 (예: Saint-Émilion 평범한 등급, Chablis village wine)
+   → map_query: 그 마을/구역 이름 + 큰 지역 (예: "Saint-Émilion, Bordeaux, France")
+   → map_zoom: 11~12
+
+C) 특정 도멘·샤토·에스테이트 (예: Château Margaux, Domaine de la Romanée-Conti, Antinori Tignanello)
+   → map_query: 도멘/샤토 정식 명칭 + 위치 (예: "Château Margaux, Margaux, France")
+   → map_zoom: 14~15
+
+D) 싱글 빈야드 / 클리마·크뤼 (예: La Tâche, Clos de Tart, Le Montrachet)
+   → map_query: 빈야드 이름 + 마을 (예: "La Tâche Vineyard, Vosne-Romanée, France")
+   → map_zoom: 15~16
+
+판단 기준: producer가 도멘/샤토면 C 또는 D, 단순 브랜드/네고시앙이면 A, 라벨이 마을·AOC만 표시하면 B
+
 [응답 JSON 형식]
 {
   "classification": "AOC/DOCG/AVA 등급 또는 null",
   "terroir": {
     "region_label": "지역명 · 큰지역, 국가",
-    "description": "떼루아 종합 설명 2-3문장 (토양, 기후가 맛에 미치는 영향)",
+    "description": "떼루아 종합 설명 2-3문장 (토양, 기후가 맛에 미치는 영향). 와인 성격(광역 블렌드/마을/도멘/싱글빈야드)에 따라 떼루아 설명 범위도 맞춰. 광역이면 큰 지역 특성, 도멘/싱글빈야드면 그 구체 떼루아.",
+    "map_query": "구글맵 검색 쿼리 (위 규칙 A-D 중 해당하는 형식)",
+    "map_zoom": 줌숫자 (7-16),
     "vineyard": {
       "headline": "밭 특징 짧은 헤드라인",
       "body": "구체적 밭 정보 2-3문장"

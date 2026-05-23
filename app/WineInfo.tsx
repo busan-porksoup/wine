@@ -7,6 +7,8 @@ export type WineInfoData = {
   terroir?: {
     region_label?: string
     description?: string
+    map_query?: string       // 구글맵 검색 쿼리 (AI가 와인 성격에 맞춰 결정)
+    map_zoom?: number        // 줌 레벨 (광역 7-9 / 마을 11-13 / 단일 밭 14-16)
     vineyard?: { headline: string; body: string }
     vintage_note?: { headline: string; body: string }
   }
@@ -165,7 +167,10 @@ export function WineInfo({ data, region, country, vintageYear, onGenerate, gener
   const t = data.terroir
   const p = data.producer
   const wm = p?.winemaking
-  const mapQuery = region && country ? `${region}, ${country}` : region || country || ''
+  // AI가 결정한 map_query 우선, 없으면 region/country fallback
+  const mapQuery = t?.map_query
+    || (region && country ? `${region}, ${country}` : region || country || '')
+  const mapZoom = t?.map_zoom ?? 9
 
   return (
     <div>
@@ -185,7 +190,7 @@ export function WineInfo({ data, region, country, vintageYear, onGenerate, gener
                 border: '1px solid rgba(200,184,154,0.4)',
                 background: 'rgba(250,246,238,0.6)',
               }}>
-                <MiniMap query={mapQuery} zoom={9} />
+                <MiniMap query={mapQuery} zoom={mapZoom} />
               </div>
             )}
 
@@ -274,6 +279,29 @@ export function WineInfo({ data, region, country, vintageYear, onGenerate, gener
               })()}
             </div>
           )}
+        </div>
+      )}
+
+      {/* 재생성 — 데이터 있을 때만 표시 */}
+      {onGenerate && (
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <button
+            onClick={onGenerate}
+            disabled={generating}
+            className="type-micro"
+            style={{
+              background: 'none', border: 'none',
+              color: generating ? 'var(--ink-sand)' : 'var(--ink-mist)',
+              textTransform: 'none', letterSpacing: 0, fontStyle: 'italic',
+              cursor: generating ? 'not-allowed' : 'pointer',
+              fontFamily: 'var(--font-sans)',
+              textDecoration: 'underline',
+              textUnderlineOffset: '3px',
+              textDecorationColor: 'rgba(200,184,154,0.5)',
+            }}
+          >
+            {generating ? '다시 가져오는 중…' : '↻ AI로 다시 가져오기'}
+          </button>
         </div>
       )}
     </div>
