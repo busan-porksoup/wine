@@ -7,6 +7,7 @@ type Respondent = '재혁' | '원우'
 type QuizQuestion = {
   category: string
   difficulty: string
+  difficulty_label?: string
   question_text: string
   choices: string[]
   correct_index: number
@@ -16,10 +17,12 @@ type QuizQuestion = {
   related_wine_ids: string[]
 }
 
-const DIFFICULTY_REF: Record<string, string> = {
+// 폴백 (API에서 difficulty_label 안 오는 경우)
+const DIFFICULTY_REF_FALLBACK: Record<string, string> = {
   '초급': '대중 상식',
   '중급': 'WSET Level 2',
   '고급': 'WSET Level 3',
+  '마스터': 'MW / MS+',
 }
 
 const STORAGE_KEY = 'quiz_respondent'
@@ -269,7 +272,7 @@ export default function Quiz({ wines = [], onOpenWine }: Props) {
                   fontStyle: 'italic', letterSpacing: 0, textTransform: 'none',
                   fontFamily: 'var(--font-sans)',
                 }}>
-                  ({DIFFICULTY_REF[question.difficulty] || question.difficulty})
+                  ({question.difficulty_label || DIFFICULTY_REF_FALLBACK[question.difficulty] || question.difficulty})
                 </span>
                 <span style={{
                   width: 1, height: 12,
