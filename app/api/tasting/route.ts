@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { ALL_CANONICAL_TAGS } from '../../notesVocabulary'
 
 const client = new Anthropic()
 
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     const message = await client.messages.create({
       model: (process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6') as string,
-      max_tokens: 300,
+      max_tokens: 400,
       messages: [
         {
           role: 'user',
@@ -27,11 +28,15 @@ export async function POST(req: NextRequest) {
 
 ${wineInfo}
 
-규칙:
-- 향(아로마), 맛(플레이버), 질감(텍스처) 관련 키워드를 합쳐 8~12개 생성
-- 각 키워드는 2~5글자의 짧은 단어 또는 짧은 표현
-- 예시: 체리, 바닐라, 탄닌감, 산도, 오크, 블랙베리, 후추, 미네랄, 긴 여운, 풀바디
-- JSON 배열만 반환, 다른 텍스트 없이
+[규칙]
+1. 향·맛·질감·여운 관련 키워드 8~12개 생성
+2. ⚠️ 반드시 아래 [표준 어휘] 목록에서만 골라. 목록에 없는 단어는 절대 만들지 마.
+3. 정확한 향이 불확실하면 일반명 사용 가능 (캐모마일 대신 "흰꽃", 캐슈넛 대신 "견과류")
+4. 같은 의미 다른 표현 중복 금지 (꿀과 꿀향 동시 사용 X)
+5. JSON 배열만 반환, 다른 텍스트 없이
+
+[표준 어휘 — 반드시 이 목록에서만 선택]
+${ALL_CANONICAL_TAGS.join(', ')}
 
 응답 형식: ["키워드1", "키워드2", ...]`,
         },

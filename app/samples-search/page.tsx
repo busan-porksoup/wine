@@ -1,22 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { NOTES_VOCABULARY, normalizeNote, categorizeNote, wineMatchesFilterTag, isUmbrellaTag } from '../notesVocabulary'
 
 // ─────────────────────────────────────────────
 // Mock 데이터
 // ─────────────────────────────────────────────
 
 const MOCK_WINES = [
-  { id: '1', name: 'Château Margaux 2015', wine_type: 'red', country: 'France', drunk_at: '2026-03-15', image_url: null, tasting_tags: ['블랙커런트', '오크', '탄닌감', '풀바디', '담배'] },
-  { id: '2', name: 'Chablis Premier Cru 2020', wine_type: 'white', country: 'France', drunk_at: '2026-04-08', image_url: null, tasting_tags: ['미네랄', '산도', '긴 여운'] },
-  { id: '3', name: 'Sassicaia 2018', wine_type: 'red', country: 'Italy', drunk_at: '2026-05-04', image_url: null, tasting_tags: ['블랙커런트', '삼나무', '담배', '풀바디'] },
-  { id: '4', name: 'Ruinart Champagne Blanc de Blancs', wine_type: 'sparkling', country: 'France', drunk_at: '2026-05-16', image_url: null, tasting_tags: ['미네랄', '산도', '오크'] },
-  { id: '5', name: 'Cheval Blanc 2015', wine_type: 'red', country: 'France', drunk_at: '2026-05-12', image_url: null, tasting_tags: ['자두', '오크', '탄닌감', '스파이시', '풀바디'] },
-  { id: '6', name: 'Apothic Red', wine_type: 'red', country: 'USA', drunk_at: '2026-04-15', image_url: null, tasting_tags: ['자두', '스파이시'] },
-  { id: '7', name: 'Sancerre 2022', wine_type: 'white', country: 'France', drunk_at: '2026-05-01', image_url: null, tasting_tags: ['미네랄', '산도', '흑연'] },
-  { id: '8', name: 'Tignanello 2019', wine_type: 'red', country: 'Italy', drunk_at: '2026-03-20', image_url: null, tasting_tags: ['블랙커런트', '오크', '담배', '풀바디'] },
-  { id: '9', name: 'Provence Rosé', wine_type: 'rosé', country: 'France', drunk_at: '2026-06-01', image_url: null, tasting_tags: ['산도', '자두'] },
-  { id: '10', name: 'Ridge Monte Bello', wine_type: 'red', country: 'USA', drunk_at: '2026-02-14', image_url: null, tasting_tags: ['블랙커런트', '오크', '풀바디', '긴 여운'] },
+  { id: '1', name: 'Château Margaux 2015', wine_type: 'red', country: 'France', drunk_at: '2026-03-15', image_url: null, tasting_tags: ['카시스', '참나무', '탄닌감', '풀바디', '담배', '바이올렛'] },
+  { id: '2', name: 'Chablis Premier Cru 2020', wine_type: 'white', country: 'France', drunk_at: '2026-04-08', image_url: null, tasting_tags: ['미네랄', '산도', '긴 여운', '레몬', '캐모마일'] },
+  { id: '3', name: 'Sassicaia 2018', wine_type: 'red', country: 'Italy', drunk_at: '2026-05-04', image_url: null, tasting_tags: ['카시스', '서양삼나무', '담배', '풀바디', '자스민'] },
+  { id: '4', name: 'Ruinart Champagne Blanc de Blancs', wine_type: 'sparkling', country: 'France', drunk_at: '2026-05-16', image_url: null, tasting_tags: ['미네랄', '높은 산도', '비스킷', '브리오슈', '아카시아', '섬세한 거품'] },
+  { id: '5', name: 'Cheval Blanc 2015', wine_type: 'red', country: 'France', drunk_at: '2026-05-12', image_url: null, tasting_tags: ['자두', '참나무', '탄닌감', '스파이시', '풀바디', '장미'] },
+  { id: '6', name: 'Apothic Red', wine_type: 'red', country: 'USA', drunk_at: '2026-04-15', image_url: null, tasting_tags: ['자두', '스파이시', '바닐라'] },
+  { id: '7', name: 'Sancerre 2022', wine_type: 'white', country: 'France', drunk_at: '2026-05-01', image_url: null, tasting_tags: ['미네랄', '활발한 산도', '흑연', '자몽'] },
+  { id: '8', name: 'Tignanello 2019', wine_type: 'red', country: 'Italy', drunk_at: '2026-03-20', image_url: null, tasting_tags: ['카시스', '참나무', '담배', '풀바디', '가죽'] },
+  { id: '9', name: 'Provence Rosé', wine_type: 'rosé', country: 'France', drunk_at: '2026-06-01', image_url: null, tasting_tags: ['활발한 산도', '딸기', '인동초'] },
+  { id: '10', name: 'Ridge Monte Bello', wine_type: 'red', country: 'USA', drunk_at: '2026-02-14', image_url: null, tasting_tags: ['카시스', '참나무', '풀바디', '긴 여운', '시나몬'] },
+  { id: '11', name: 'Mosel Riesling', wine_type: 'white', country: 'Germany', drunk_at: '2026-01-12', image_url: null, tasting_tags: ['라임', '꿀', '석유', '높은 산도'] },
+  { id: '12', name: 'Rioja Gran Reserva', wine_type: 'red', country: 'Spain', drunk_at: '2026-02-22', image_url: null, tasting_tags: ['자두', '바닐라', '가죽', '담배', '시나몬'] },
 ]
 
 const TYPE_LABEL: Record<string, string> = {
@@ -27,8 +30,9 @@ const TYPE_EMOJI: Record<string, string> = {
 }
 
 const COUNTRY_FLAG: Record<string, string> = {
-  France: '🇫🇷', Italy: '🇮🇹', USA: '🇺🇸', Spain: '🇪🇸', Japan: '🇯🇵',
+  France: '🇫🇷', Italy: '🇮🇹', USA: '🇺🇸', Spain: '🇪🇸', Japan: '🇯🇵', Germany: '🇩🇪',
   'South Africa': '🇿🇦', Chile: '🇨🇱', Australia: '🇦🇺', Argentina: '🇦🇷', Portugal: '🇵🇹',
+  'United Kingdom': '🇬🇧', 'South Korea': '🇰🇷',
 }
 
 function fmtMD(iso?: string) {
@@ -110,6 +114,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
         letterSpacing: '-0.01em',
         transition: 'all var(--dur-base) var(--ease-out-soft)',
         whiteSpace: 'nowrap',
+        flexShrink: 0,
       }}
     >
       {children}
@@ -125,95 +130,217 @@ export default function SamplesSearch() {
   const [types, setTypes] = useState<string[]>([])
   const [countries, setCountries] = useState<string[]>([])
   const [notes, setNotes] = useState<string[]>([])
+  const [openCats, setOpenCats] = useState<Set<string>>(new Set())
 
   const toggle = (arr: string[], v: string, setter: (next: string[]) => void) => {
     setter(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v])
   }
 
-  // 카운트 집계
-  const countryCount: Record<string, number> = {}
-  const noteCount: Record<string, number> = {}
-  MOCK_WINES.forEach(w => {
-    if (w.country) countryCount[w.country] = (countryCount[w.country] || 0) + 1
-    ;(w.tasting_tags || []).forEach((t: string) => { noteCount[t] = (noteCount[t] || 0) + 1 })
-  })
-  const sortedCountries = Object.entries(countryCount).sort((a, b) => b[1] - a[1]).map(([c]) => c)
-  const sortedNotes = Object.entries(noteCount).sort((a, b) => b[1] - a[1]).map(([n]) => n)
+  function toggleCat(cat: string) {
+    setOpenCats(prev => {
+      const next = new Set(prev)
+      if (next.has(cat)) next.delete(cat)
+      else next.add(cat)
+      return next
+    })
+  }
 
-  // 필터링
-  // 종류와 국가는 각 그룹 내 OR, 그룹 간 AND
-  // 노트는 AND (선택한 노트 모두 있어야 함)
+  const { countryCount, noteCount, sortedCountries, sortedNotes } = useMemo(() => {
+    const cc: Record<string, number> = {}
+    const nc: Record<string, number> = {}
+    MOCK_WINES.forEach(w => {
+      if (w.country) cc[w.country] = (cc[w.country] || 0) + 1
+      if (Array.isArray(w.tasting_tags)) {
+        const canonicalSet = new Set<string>()
+        w.tasting_tags.forEach(t => { if (t) canonicalSet.add(normalizeNote(t)) })
+        canonicalSet.forEach(c => { nc[c] = (nc[c] || 0) + 1 })
+      }
+    })
+    // umbrella union counts
+    NOTES_VOCABULARY.forEach(cat => {
+      cat.tags.forEach(entry => {
+        if (entry.includes && entry.includes.length > 0) {
+          let count = 0
+          MOCK_WINES.forEach(w => {
+            if (!Array.isArray(w.tasting_tags)) return
+            const tags = w.tasting_tags.map(t => normalizeNote(t))
+            const matches = tags.includes(entry.ko) || entry.includes!.some(c => tags.includes(c))
+            if (matches) count++
+          })
+          if (count > 0) nc[entry.ko] = count
+        }
+      })
+    })
+    return {
+      countryCount: cc,
+      noteCount: nc,
+      sortedCountries: Object.entries(cc).sort((a, b) => b[1] - a[1]).map(([c]) => c),
+      sortedNotes: Object.entries(nc).sort((a, b) => b[1] - a[1]).map(([n]) => n),
+    }
+  }, [])
+
   const filtered = MOCK_WINES.filter(w => {
     const typeMatch = types.length === 0 || types.includes(w.wine_type)
-    const countryMatch = countries.length === 0 || (w.country && countries.includes(w.country))
-    const notesMatch = notes.length === 0 || notes.every(n => (w.tasting_tags || []).includes(n))
+    const countryMatch = countries.length === 0 || countries.includes(w.country)
+    const notesMatch = notes.length === 0 || (Array.isArray(w.tasting_tags) && notes.every(n => wineMatchesFilterTag(w.tasting_tags, n)))
     return typeMatch && countryMatch && notesMatch
-  })
+  }).sort((a, b) => (b.drunk_at || '').localeCompare(a.drunk_at || ''))
 
   const hasFilter = types.length + countries.length + notes.length > 0
 
   return (
     <div id="app-container" style={{ paddingBottom: '80px' }}>
-      {/* Hero */}
-      <div style={{ padding: '48px 24px 16px' }}>
-        <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '6px', textShadow: '0 1px 8px rgba(244,239,230,0.7)' }}>SAMPLES · SEARCH</div>
-        <h1 className="type-display-2" style={{ color: 'var(--ink-charcoal)', margin: '0 0 12px', fontSize: '32px', textShadow: '0 1px 12px rgba(244,239,230,0.85)' }}>
+      {/* Hero — 컴팩트 */}
+      <div style={{ padding: '36px 24px 8px' }}>
+        <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '4px', textShadow: '0 1px 8px rgba(244,239,230,0.7)' }}>SAMPLES · SEARCH</div>
+        <h1 className="type-display-2" style={{ color: 'var(--ink-charcoal)', margin: '0 0 4px', fontSize: '28px', textShadow: '0 1px 12px rgba(244,239,230,0.85)' }}>
           Find your wine.
         </h1>
-        <p className="type-body" style={{ fontStyle: 'italic', color: 'var(--ink-charcoal)', margin: 0, textShadow: '0 1px 8px rgba(244,239,230,0.7)' }}>
-          종류 · 국가 · 노트 키워드로 필터링
-        </p>
       </div>
 
-      {/* 필터 카드 */}
-      <div style={{ padding: '12px 16px' }}>
-        <div className="glass-card glass-card--light" style={{ padding: '20px 18px' }}>
+      {/* 필터 카드 — 라벨 제거, 여백 축소 */}
+      <div style={{ padding: '8px 16px 0' }}>
+        <div className="glass-card glass-card--light" style={{ padding: '14px 14px' }}>
 
-          {/* 종류 — 한 줄에 다 보이도록 emoji 제외 */}
-          <div style={{ marginBottom: '16px' }}>
-            <div className="type-caption" style={{ color: 'var(--ink-mist)', marginBottom: '10px', fontSize: '10px' }}>종류</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-              {(['red', 'white', 'sparkling', 'rosé', 'dessert'] as const).map(t => (
-                <Chip key={t} active={types.includes(t)} onClick={() => toggle(types, t, setTypes)}>
-                  {TYPE_LABEL[t]}
-                </Chip>
-              ))}
-            </div>
+          {/* 종류 — 라벨 없음 */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+            {(['red', 'white', 'sparkling', 'rosé', 'dessert'] as const).map(t => (
+              <Chip key={t} active={types.includes(t)} onClick={() => toggle(types, t, setTypes)}>
+                {TYPE_LABEL[t]}
+              </Chip>
+            ))}
           </div>
 
-          <div style={{ height: 1, background: 'rgba(200,184,154,0.4)', margin: '14px 0' }}/>
+          {/* 국가 — 가로 스크롤 + 라벨 없음 */}
+          {sortedCountries.length > 0 && (
+            <>
+              <div style={{ height: 1, background: 'rgba(200,184,154,0.35)', margin: '10px 0' }}/>
+              <div
+                className="hide-scrollbar"
+                style={{
+                  display: 'flex',
+                  gap: '6px',
+                  overflowX: 'auto',
+                  scrollbarWidth: 'none',
+                  WebkitOverflowScrolling: 'touch',
+                  // bleed to card edges for "swipe me" affordance
+                  margin: '0 -14px',
+                  padding: '0 14px',
+                }}
+              >
+                {sortedCountries.map(c => (
+                  <Chip key={c} active={countries.includes(c)} onClick={() => toggle(countries, c, setCountries)}>
+                    <span title={c} style={{ fontSize: '16px', lineHeight: 1 }}>{COUNTRY_FLAG[c] || '🍾'}</span>
+                  </Chip>
+                ))}
+              </div>
+            </>
+          )}
 
-          {/* 국가 */}
-          <div style={{ marginBottom: '16px' }}>
-            <div className="type-caption" style={{ color: 'var(--ink-mist)', marginBottom: '10px', fontSize: '10px' }}>국가</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {sortedCountries.map(c => (
-                <Chip key={c} active={countries.includes(c)} onClick={() => toggle(countries, c, setCountries)}>
-                  {COUNTRY_FLAG[c] || '🍾'} {c} <span style={{ opacity: 0.7, marginLeft: '2px', fontSize: '10px' }}>({countryCount[c]})</span>
-                </Chip>
-              ))}
-            </div>
-          </div>
+          {/* 노트 — 라벨 없음, 카테고리만 표시 */}
+          {sortedNotes.length > 0 && (() => {
+            const byCat: Record<string, string[]> = {}
+            sortedNotes.forEach(n => {
+              const cat = categorizeNote(n)
+              if (!byCat[cat]) byCat[cat] = []
+              byCat[cat].push(n)
+            })
+            const orderedCats = [
+              ...NOTES_VOCABULARY.map(c => c.name_ko).filter(n => byCat[n]?.length),
+              ...(byCat['기타']?.length ? ['기타'] : []),
+            ]
+            return (
+              <>
+                <div style={{ height: 1, background: 'rgba(200,184,154,0.35)', margin: '10px 0' }}/>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {orderedCats.map((cat, idx) => {
+                    const isOpen = openCats.has(cat)
+                    const selectedInCat = byCat[cat].filter(n => notes.includes(n)).length
+                    return (
+                      <div key={cat}>
+                        {idx > 0 && <div style={{ height: 1, background: 'rgba(200,184,154,0.25)' }}/>}
+                        <button
+                          onClick={() => toggleCat(cat)}
+                          aria-expanded={isOpen}
+                          style={{
+                            width: '100%', padding: '8px 0',
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            fontFamily: 'var(--font-sans)',
+                          }}
+                        >
+                          <span style={{
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: 'var(--ink-charcoal)',
+                            letterSpacing: '-0.01em',
+                          }}>
+                            {cat}
+                            <span style={{
+                              color: 'var(--ink-mist)',
+                              fontWeight: 400,
+                              marginLeft: '6px',
+                              fontSize: '11px',
+                            }}>
+                              ({byCat[cat].length})
+                            </span>
+                            {selectedInCat > 0 && (
+                              <span style={{
+                                color: 'var(--ink-bordeaux)',
+                                fontSize: '11px',
+                                marginLeft: '6px',
+                                fontWeight: 600,
+                              }}>
+                                · {selectedInCat} 선택
+                              </span>
+                            )}
+                          </span>
+                          <span style={{
+                            width: 22, height: 22, borderRadius: '50%',
+                            border: '1px solid rgba(107,31,42,0.35)',
+                            background: isOpen ? 'var(--ink-bordeaux)' : 'rgba(107,31,42,0.06)',
+                            color: isOpen ? '#fff' : 'var(--ink-bordeaux)',
+                            fontSize: '12px', fontWeight: 400,
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            lineHeight: 1, paddingBottom: '1px',
+                            transform: isOpen ? 'rotate(45deg)' : 'rotate(0deg)',
+                            transition: 'transform var(--dur-base) var(--ease-out-soft), background var(--dur-base) ease, color var(--dur-base) ease',
+                            flexShrink: 0,
+                          }}>+</span>
+                        </button>
+                        {isOpen && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', paddingBottom: '10px' }}>
+                            {byCat[cat]
+                              .slice()
+                              .sort((a, b) => {
+                                const au = isUmbrellaTag(a)
+                                const bu = isUmbrellaTag(b)
+                                if (au && !bu) return -1
+                                if (!au && bu) return 1
+                                return (noteCount[b] ?? 0) - (noteCount[a] ?? 0)
+                              })
+                              .map(n => {
+                                const umbrella = isUmbrellaTag(n)
+                                return (
+                                  <Chip key={n} active={notes.includes(n)} onClick={() => toggle(notes, n, setNotes)}>
+                                    {umbrella && <span style={{ marginRight: '3px', opacity: 0.6 }}>◆</span>}
+                                    {n}
+                                    <span style={{ opacity: 0.7, marginLeft: '2px', fontSize: '10px' }}>({noteCount[n]})</span>
+                                  </Chip>
+                                )
+                              })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )
+          })()}
 
-          <div style={{ height: 1, background: 'rgba(200,184,154,0.4)', margin: '14px 0' }}/>
-
-          {/* 노트 */}
-          <div>
-            <div className="type-caption" style={{ color: 'var(--ink-mist)', marginBottom: '10px', fontSize: '10px' }}>
-              노트 <span style={{ fontSize: '9px', color: 'var(--ink-sand)' }}>(모두 만족하는 와인)</span>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {sortedNotes.map(n => (
-                <Chip key={n} active={notes.includes(n)} onClick={() => toggle(notes, n, setNotes)}>
-                  {n} <span style={{ opacity: 0.7, marginLeft: '2px', fontSize: '10px' }}>({noteCount[n]})</span>
-                </Chip>
-              ))}
-            </div>
-          </div>
-
-          {/* Reset */}
           {hasFilter && (
-            <div style={{ marginTop: '16px', textAlign: 'center' }}>
+            <div style={{ marginTop: '10px', textAlign: 'center' }}>
               <button
                 onClick={() => { setTypes([]); setCountries([]); setNotes([]) }}
                 className="type-micro"
@@ -234,9 +361,9 @@ export default function SamplesSearch() {
         </div>
       </div>
 
-      {/* 결과 카드 */}
-      <div style={{ padding: '20px 16px 0' }}>
-        <div style={{ padding: '0 8px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+      {/* 결과 */}
+      <div style={{ padding: '14px 16px 0' }}>
+        <div style={{ padding: '0 8px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <div className="type-caption" style={{ color: 'var(--ink-bordeaux)' }}>
             {hasFilter ? '필터 결과' : '전체 와인'}
           </div>
@@ -246,9 +373,9 @@ export default function SamplesSearch() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="glass-card glass-card--light" style={{ padding: '40px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: '40px', marginBottom: '12px', opacity: 0.5 }}>🔍</div>
-            <div className="type-title-md" style={{ fontStyle: 'italic', color: 'var(--ink-charcoal)', marginBottom: '6px' }}>일치하는 와인 없음</div>
+          <div className="glass-card glass-card--light" style={{ padding: '32px 24px', textAlign: 'center' }}>
+            <div style={{ fontSize: '36px', marginBottom: '8px', opacity: 0.5 }}>🔍</div>
+            <div className="type-title-md" style={{ fontStyle: 'italic', color: 'var(--ink-charcoal)', marginBottom: '4px' }}>일치하는 와인 없음</div>
             <div className="type-micro" style={{ color: 'var(--ink-mist)' }}>필터를 조정해보세요</div>
           </div>
         ) : (
@@ -260,12 +387,9 @@ export default function SamplesSearch() {
         )}
       </div>
 
-      <div style={{ padding: '24px 24px 16px', textAlign: 'center' }}>
-        <p className="type-micro" style={{ color: 'var(--ink-mist)', textTransform: 'none', letterSpacing: 0, fontStyle: 'italic' }}>
-          종류·국가는 그룹 내 OR (여러 개 선택 가능), 그룹 간 AND<br/>
-          노트는 모두 만족 (AND)
-        </p>
-      </div>
+      <style jsx global>{`
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   )
 }

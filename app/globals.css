@@ -146,14 +146,15 @@ body {
 /* ============================================
    HIDE SCROLLBARS — editorial aesthetic, no track on right edge
    ============================================ */
-html, body, .modal-sheet, .tab-row {
+html, body, .modal-sheet, .tab-row, .hide-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 html::-webkit-scrollbar,
 body::-webkit-scrollbar,
 .modal-sheet::-webkit-scrollbar,
-.tab-row::-webkit-scrollbar {
+.tab-row::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
 

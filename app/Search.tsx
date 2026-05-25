@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { MiniWineCard } from './MiniWineCard'
+import { NOTES_VOCABULARY, normalizeNote, categorizeNote, wineMatchesFilterTag, isUmbrellaTag } from './notesVocabulary'
 
 const TYPE_LABEL: Record<string, string> = {
   red: '레드', white: '화이트', sparkling: '샴페인', rosé: '로제', dessert: '디저트',
@@ -37,58 +38,7 @@ function normalizeCountry(name?: string): string {
   return COUNTRY_ALIASES[key] || COUNTRY_ALIASES[name.trim()] || name.trim()
 }
 
-// 노트 카테고리 매핑
-const NOTE_CATEGORIES: { name: string; keywords: string[] }[] = [
-  {
-    name: '과일·꽃·허브',
-    keywords: [
-      // 검은/붉은/흰 과일
-      '블랙커런트','블랙체리','블랙베리','자두','검은체리','체리','딸기','라즈베리','크랜베리','석류',
-      '사과','배','복숭아','살구','레몬','자몽','오렌지','라임','파인애플','망고','패션프루트','리치',
-      '말린과일','잼','잼처럼','잼같은',
-      // 꽃·허브
-      '장미','제비꽃','라벤더','아카시아','엘더플라워','꽃향','꽃','민트','바질','타임','유칼립투스','솔잎','허브',
-    ],
-  },
-  {
-    name: '향신료·오크·숙성',
-    keywords: [
-      '오크','바닐라','토스트','시가','담배','가죽','삼나무','시더','계피','시나몬','카다멈',
-      '아니스','정향','후추','검은후추','핑크페퍼','스파이시','향신료',
-      '커피','카카오','다크초콜릿','초콜릿','캐러멜','버터','버터스카치','꿀',
-    ],
-  },
-  {
-    name: '미네랄·흙',
-    keywords: [
-      '미네랄','미네랄리티','흑연','화약','부싯돌','점토','백악','석회','젖은돌','젖은','돌','이끼',
-      '버섯','트러플','흙','낙엽','삼림','숲',
-    ],
-  },
-  {
-    name: '구조·질감',
-    keywords: [
-      '탄닌감','탄닌','풀바디','미디엄바디','라이트바디','바디감','바디',
-      '산도','신맛','크리미','실키','벨벳','부드러움','부드러운','거칠음','거친',
-      '드라이','오프드라이','스위트','단맛','리치한','응축감','농축감','농밀',
-    ],
-  },
-  {
-    name: '여운·종합',
-    keywords: [
-      '긴 여운','짧은 여운','깔끔한 여운','여운','마무리','피니시',
-      '복합적','복합미','단순한','우아함','강건함','균형','균형감','모던','클래식',
-      '신선함','신선한','응집된','조화로움',
-    ],
-  },
-]
-
-function categorizeNote(note: string): string {
-  for (const cat of NOTE_CATEGORIES) {
-    if (cat.keywords.some(k => note === k || note.includes(k))) return cat.name
-  }
-  return '기타'
-}
+// 노트 카테고리·정규화 로직은 ./notesVocabulary 모듈에서 import
 
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -140,18 +90,44 @@ export default function Search({ wines, onOpenWine }: Props) {
 
   const { countryCount, noteCount, sortedCountries, sortedNotes } = useMemo(() => {
     const cc: Record<string, number> = {}
-    const nc: Record<string, number> = {}
+    const nc: Record<string, number> = {}  // canonical 기준 카운트
+
     wines.forEach(w => {
+      // 국가 (이미 normalize 적용)
       if (w.country) {
         const c = normalizeCountry(w.country)
         if (c) cc[c] = (cc[c] || 0) + 1
       }
+      // 노트: 각 wine의 태그를 canonical로 정규화한 unique set 만들고 카운트
       if (Array.isArray(w.tasting_tags)) {
+        const canonicalSet = new Set<string>()
         w.tasting_tags.forEach((t: string) => {
-          if (t) nc[t] = (nc[t] || 0) + 1
+          if (t) canonicalSet.add(normalizeNote(t))
         })
+        canonicalSet.forEach(c => { nc[c] = (nc[c] || 0) + 1 })
       }
     })
+
+    // umbrella entries: 자식 태그가 있으면 expanded count 추가 (UNION으로 계산)
+    // 사용자가 umbrella 칩 누르면 자식 와인까지 매칭되므로, 카운트도 그 기준
+    NOTES_VOCABULARY.forEach(cat => {
+      cat.tags.forEach(entry => {
+        if (entry.includes && entry.includes.length > 0) {
+          // 이 umbrella가 매칭할 와인 수 계산
+          let count = 0
+          wines.forEach(w => {
+            if (!Array.isArray(w.tasting_tags)) return
+            const canonicalTags = w.tasting_tags.map((t: string) => normalizeNote(t))
+            const matches =
+              canonicalTags.includes(entry.ko) ||
+              entry.includes!.some(child => canonicalTags.includes(child))
+            if (matches) count++
+          })
+          if (count > 0) nc[entry.ko] = count
+        }
+      })
+    })
+
     return {
       countryCount: cc,
       noteCount: nc,
@@ -160,11 +136,11 @@ export default function Search({ wines, onOpenWine }: Props) {
     }
   }, [wines])
 
-  // 필터링: 종류·국가는 각 그룹 내 OR, 그룹 간 AND. 노트는 모두 만족(AND)
+  // 필터링: 종류·국가는 각 그룹 내 OR, 그룹 간 AND. 노트는 모두 만족(AND) + umbrella expansion
   const filtered = wines.filter(w => {
     const typeMatch = types.length === 0 || types.includes(w.wine_type)
     const countryMatch = countries.length === 0 || (w.country && countries.includes(normalizeCountry(w.country)))
-    const notesMatch = notes.length === 0 || notes.every(n => Array.isArray(w.tasting_tags) && w.tasting_tags.includes(n))
+    const notesMatch = notes.length === 0 || (Array.isArray(w.tasting_tags) && notes.every(n => wineMatchesFilterTag(w.tasting_tags, n)))
     return typeMatch && countryMatch && notesMatch
   }).sort((a, b) => (b.drunk_at || '').localeCompare(a.drunk_at || ''))
 
@@ -172,70 +148,65 @@ export default function Search({ wines, onOpenWine }: Props) {
 
   return (
     <div style={{ paddingBottom: '120px' }}>
-      {/* Hero */}
-      <div style={{ padding: '20px 24px 4px' }}>
-        <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '4px' }}>SEARCH</div>
-        <p className="type-body" style={{
-          fontStyle: 'italic', color: 'var(--ink-mist)', margin: 0,
-          textTransform: 'none', letterSpacing: 0,
-        }}>
-          종류 · 국가 · 노트 키워드로 와인 찾기
-        </p>
+      {/* Hero — 컴팩트 */}
+      <div style={{ padding: '16px 24px 4px' }}>
+        <div className="type-caption" style={{ color: 'var(--ink-bordeaux)' }}>SEARCH</div>
       </div>
 
-      {/* 필터 카드 */}
-      <div style={{ padding: '16px 16px 0' }}>
-        <div className="glass-card glass-card--light" style={{ padding: '20px 18px' }}>
+      {/* 필터 카드 — 라벨 제거, 여백 축소 */}
+      <div style={{ padding: '8px 16px 0' }}>
+        <div className="glass-card glass-card--light" style={{ padding: '14px 14px' }}>
 
-          {/* 종류 */}
-          <div style={{ marginBottom: '14px' }}>
-            <div className="type-caption" style={{ color: 'var(--ink-mist)', marginBottom: '10px', fontSize: '10px' }}>종류</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-              {(['red', 'white', 'sparkling', 'rosé', 'dessert'] as const).map(t => (
-                <Chip key={t} active={types.includes(t)} onClick={() => toggle(types, t, setTypes)}>
-                  {TYPE_LABEL[t]}
-                </Chip>
-              ))}
-            </div>
+          {/* 종류 — 라벨 없음 */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+            {(['red', 'white', 'sparkling', 'rosé', 'dessert'] as const).map(t => (
+              <Chip key={t} active={types.includes(t)} onClick={() => toggle(types, t, setTypes)}>
+                {TYPE_LABEL[t]}
+              </Chip>
+            ))}
           </div>
 
+          {/* 국가 — 가로 스크롤, 라벨 없음 */}
           {sortedCountries.length > 0 && (
             <>
-              <div style={{ height: 1, background: 'rgba(200,184,154,0.4)', margin: '14px 0' }}/>
-              <div style={{ marginBottom: '14px' }}>
-                <div className="type-caption" style={{ color: 'var(--ink-mist)', marginBottom: '10px', fontSize: '10px' }}>국가</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {sortedCountries.map(c => (
-                    <Chip key={c} active={countries.includes(c)} onClick={() => toggle(countries, c, setCountries)}>
-                      <span title={c} style={{ fontSize: '16px', lineHeight: 1 }}>{COUNTRY_FLAG[c] || '🍾'}</span>
-                    </Chip>
-                  ))}
-                </div>
+              <div style={{ height: 1, background: 'rgba(200,184,154,0.35)', margin: '10px 0' }}/>
+              <div
+                className="hide-scrollbar"
+                style={{
+                  display: 'flex',
+                  gap: '6px',
+                  overflowX: 'auto',
+                  scrollbarWidth: 'none',
+                  WebkitOverflowScrolling: 'touch',
+                  margin: '0 -14px',
+                  padding: '0 14px',
+                }}
+              >
+                {sortedCountries.map(c => (
+                  <Chip key={c} active={countries.includes(c)} onClick={() => toggle(countries, c, setCountries)}>
+                    <span title={c} style={{ fontSize: '16px', lineHeight: 1 }}>{COUNTRY_FLAG[c] || '🍾'}</span>
+                  </Chip>
+                ))}
               </div>
             </>
           )}
 
+          {/* 노트 — 라벨 없음, 카테고리 토글만 */}
           {sortedNotes.length > 0 && (() => {
-            // 카테고리별 그룹핑
             const byCat: Record<string, string[]> = {}
             sortedNotes.forEach(n => {
               const cat = categorizeNote(n)
               if (!byCat[cat]) byCat[cat] = []
               byCat[cat].push(n)
             })
-            // 카테고리 순서 (사전 정의 순 + 기타는 마지막)
             const orderedCats = [
-              ...NOTE_CATEGORIES.map(c => c.name).filter(n => byCat[n]?.length),
+              ...NOTES_VOCABULARY.map(c => c.name_ko).filter(n => byCat[n]?.length),
               ...(byCat['기타']?.length ? ['기타'] : []),
             ]
             return (
               <>
-                <div style={{ height: 1, background: 'rgba(200,184,154,0.4)', margin: '14px 0' }}/>
-                <div>
-                  <div className="type-caption" style={{ color: 'var(--ink-mist)', marginBottom: '12px', fontSize: '10px' }}>
-                    노트 <span style={{ fontSize: '9px', color: 'var(--ink-sand)' }}>(모두 만족하는 와인)</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ height: 1, background: 'rgba(200,184,154,0.35)', margin: '10px 0' }}/>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {orderedCats.map((cat, idx) => {
                       const isOpen = openCats.has(cat)
                       const selectedInCat = byCat[cat].filter(n => notes.includes(n)).length
@@ -293,17 +264,30 @@ export default function Search({ wines, onOpenWine }: Props) {
                           </button>
                           {isOpen && (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', paddingBottom: '12px' }}>
-                              {byCat[cat].map(n => (
-                                <Chip key={n} active={notes.includes(n)} onClick={() => toggle(notes, n, setNotes)}>
-                                  {n} <span style={{ opacity: 0.7, marginLeft: '2px', fontSize: '10px' }}>({noteCount[n]})</span>
-                                </Chip>
-                              ))}
+                              {byCat[cat]
+                                .slice()
+                                .sort((a, b) => {
+                                  const au = isUmbrellaTag(a)
+                                  const bu = isUmbrellaTag(b)
+                                  if (au && !bu) return -1
+                                  if (!au && bu) return 1
+                                  return (noteCount[b] ?? 0) - (noteCount[a] ?? 0)
+                                })
+                                .map(n => {
+                                  const umbrella = isUmbrellaTag(n)
+                                  return (
+                                    <Chip key={n} active={notes.includes(n)} onClick={() => toggle(notes, n, setNotes)}>
+                                      {umbrella && <span style={{ marginRight: '3px', opacity: 0.6 }}>◆</span>}
+                                      {n}
+                                      <span style={{ opacity: 0.7, marginLeft: '2px', fontSize: '10px' }}>({noteCount[n]})</span>
+                                    </Chip>
+                                  )
+                                })}
                             </div>
                           )}
                         </div>
                       )
                     })}
-                  </div>
                 </div>
               </>
             )
