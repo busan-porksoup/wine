@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
 3. vintage_note는 해당 빈티지의 날씨와 그것이 와인 캐릭터에 미친 영향 (한국 와인 평단 평가 톤)
 4. vineyard는 구체적인 밭 정보(단일 구획 여부, 면적, 수령 등)를 알고 있을 때만 채우고, 모르면 vineyard 필드 자체를 omit
 5. winemaking 각 필드는 구체적 정보 있을 때만 채우기 (예: 블렌드 비율을 모르면 blend 필드 omit)
-6. 마크다운 절대 금지. 순수 JSON만.
+6. korean_labels는 반드시 채워. 와인 이름·생산자·지역·국가·품종을 자연스러운 한글 표기로 변환 (예: "Bourgogne" → "부르고뉴", "Chenin Blanc" → "셰닌 블랑", "Western Cape" → "웨스턴 케이프", "South Africa" → "남아프리카공화국"). 한국 와인 시장에서 통용되는 표기 우선, 없으면 외래어 표기법 기준.
+7. 마크다운 절대 금지. 순수 JSON만.
 
 [map_query / map_zoom 결정 규칙 — 매우 중요]
 와인의 성격에 따라 구글맵에서 보여줄 지역을 다르게 결정해.
@@ -57,6 +58,13 @@ D) 싱글 빈야드 / 클리마·크뤼 (예: La Tâche, Clos de Tart, Le Montra
 [응답 JSON 형식]
 {
   "classification": "AOC/DOCG/AVA 등급 또는 null",
+  "korean_labels": {
+    "name": "와인 이름 한글 표기 (외래어 표기법 기준, 한국 와인 시장에서 통용되는 표기 우선)",
+    "producer": "생산자 한글 표기",
+    "region": "지역 한글 표기",
+    "country": "국가 한글 표기",
+    "grape_variety": "품종 한글 표기 (여러 개면 ' · '로 구분)"
+  },
   "terroir": {
     "region_label": "지역명 · 큰지역, 국가",
     "description": "떼루아 종합 설명 2-3문장 (토양, 기후가 맛에 미치는 영향). 와인 성격(광역 블렌드/마을/도멘/싱글빈야드)에 따라 떼루아 설명 범위도 맞춰. 광역이면 큰 지역 특성, 도멘/싱글빈야드면 그 구체 떼루아.",

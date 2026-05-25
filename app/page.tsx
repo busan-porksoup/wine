@@ -47,7 +47,7 @@ const labelStyle = {
 
 // 일괄 와인 정보 생성 배너 (분석 탭 상단)
 function WineInfoMigration({ wines, onComplete }: { wines: any[]; onComplete: () => void }) {
-  const needsInfo = wines.filter(w => !w.wine_info)
+  const needsInfo = wines.filter(w => !w.wine_info || !w.wine_info.korean_labels)
   const [running, setRunning] = useState(false)
   const [progress, setProgress] = useState({ done: 0, total: 0, failed: 0 })
 
@@ -251,6 +251,8 @@ export default function Home() {
   const [editDrunkAt, setEditDrunkAt] = useState('')
   const [editGrapeVariety, setEditGrapeVariety] = useState('')
   const [editImagePosition, setEditImagePosition] = useState('50% 50%')
+  const [editImageFile, setEditImageFile] = useState<File | null>(null)
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
 
   const [selectedFoods, setSelectedFoods] = useState<string[]>([])
   const [foodOpen, setFoodOpen] = useState(false)
@@ -262,6 +264,9 @@ export default function Home() {
   const [tastingLoading, setTastingLoading] = useState(false)
 
   const [wineInfoLoading, setWineInfoLoading] = useState(false)
+
+  // hero 텍스트 꾹 누르면 한글 표기 토글
+  const [textPressing, setTextPressing] = useState(false)
 
   // AI 배너 멘트
   const [bannerMsg, setBannerMsg] = useState('')
@@ -343,6 +348,8 @@ export default function Home() {
     setEditDrunkAt(wine.drunk_at || '')
     setEditGrapeVariety(Array.isArray(wine.grape_variety) ? wine.grape_variety.join(', ') : wine.grape_variety || '')
     setEditImagePosition(wine.image_position || '50% 50%')
+    setEditImageFile(null)
+    setEditImagePreview(null)
     setSelectedFoods(wine.food_pairings || [])
     setFoodOpen(false)
     setCustomFood('')
@@ -351,7 +358,8 @@ export default function Home() {
     setImageViewerOpen(false)
     setWineInfoLoading(false)
     if (!wine.tasting_tags || wine.tasting_tags.length === 0) generateTastingNotes(wine)
-    if (!wine.wine_info) generateWineInfo(wine)
+    // wine_info가 없거나 korean_labels 같은 새 필드가 빠진 경우 자동 재생성
+    if (!wine.wine_info || !wine.wine_info.korean_labels) generateWineInfo(wine)
   }
 
   async function generateWineInfo(wine: any) {
@@ -417,6 +425,19 @@ export default function Home() {
       rating: avgRating > 0 ? avgRating : null,
     }
     if (editMode) {
+      // 새 사진 선택했으면 먼저 업로드
+      if (editImageFile) {
+        const ext = editImageFile.name.split('.').pop()
+        const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+        const { error: upErr } = await supabase.storage.from('wine-images').upload(fileName, editImageFile)
+        if (upErr) {
+          setSaving(false)
+          setSaveMsg('사진 업로드 실패: ' + upErr.message)
+          return
+        }
+        const { data: urlData } = supabase.storage.from('wine-images').getPublicUrl(fileName)
+        updateData.image_url = urlData.publicUrl
+      }
       Object.assign(updateData, {
         name: editName, producer: editProducer || null,
         country: editCountry || null, region: editRegion || null,
@@ -640,25 +661,59 @@ export default function Home() {
               {/* ── 읽기 모드 ── */}
               {!editMode && (
                 <>
-                  {/* 헤더 — 중앙 정렬 editorial 블록 */}
-                  <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                    <h2 className="type-display-2" style={{ color: 'var(--ink-charcoal)', margin: '0 0 10px', fontSize: '32px' }}>{selected.name}</h2>
-                    {selected.producer && (
-                      <p className="type-body" style={{ fontStyle: 'italic', color: 'var(--ink-mist)', margin: '0 0 6px' }}>{selected.producer}</p>
-                    )}
-                    <p className="type-caption" style={{ color: 'var(--ink-sand)', margin: '0 0 10px' }}>
-                      {[selected.region, selected.country].filter(Boolean).join(' · ')}{selected.vintage_year ? ` · ${selected.vintage_year}` : ''}
-                    </p>
-                    <p className="type-body" style={{ fontStyle: 'italic', color: 'var(--ink-mist)', margin: '0 0 14px' }}>
-                      — {formatEditorialDate(selected.drunk_at)} —
-                    </p>
-                  </div>
+                  {/* 헤더 — 중앙 정렬 editorial 블록. 꾹 누르면 한글 표기로 토글 */}
+                  {(() => {
+                    const kr = selected.wine_info?.korean_labels || {}
+                    const showKr = textPressing
+                    const grapeOriginal = Array.isArray(selected.grape_variety) ? selected.grape_variety.join(' · ') : (selected.grape_variety || '')
+                    const startPress = () => setTextPressing(true)
+                    const endPress = () => setTextPressing(false)
+                    return (
+                      <div
+                        onTouchStart={startPress}
+                        onTouchEnd={endPress}
+                        onTouchCancel={endPress}
+                        onMouseDown={startPress}
+                        onMouseUp={endPress}
+                        onMouseLeave={endPress}
+                        style={{
+                          userSelect: 'none',
+                          WebkitUserSelect: 'none',
+                          touchAction: 'manipulation',
+                          cursor: kr.name ? 'pointer' : 'default',
+                          transition: 'opacity var(--dur-base) var(--ease-out-soft)',
+                          opacity: showKr ? 0.9 : 1,
+                        }}
+                      >
+                        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                          <h2 className="type-display-2" style={{ color: 'var(--ink-charcoal)', margin: '0 0 10px', fontSize: '32px' }}>
+                            {showKr && kr.name ? kr.name : selected.name}
+                          </h2>
+                          {selected.producer && (
+                            <p className="type-body" style={{ fontStyle: 'italic', color: 'var(--ink-mist)', margin: '0 0 6px' }}>
+                              {showKr && kr.producer ? kr.producer : selected.producer}
+                            </p>
+                          )}
+                          <p className="type-caption" style={{ color: 'var(--ink-sand)', margin: '0 0 10px' }}>
+                            {[
+                              showKr && kr.region ? kr.region : selected.region,
+                              showKr && kr.country ? kr.country : selected.country,
+                            ].filter(Boolean).join(' · ')}
+                            {selected.vintage_year ? ` · ${selected.vintage_year}` : ''}
+                          </p>
+                          <p className="type-body" style={{ fontStyle: 'italic', color: 'var(--ink-mist)', margin: '0 0 14px' }}>
+                            — {formatEditorialDate(selected.drunk_at)} —
+                          </p>
+                        </div>
 
-                  {selected.grape_variety?.length > 0 && (
-                    <p className="type-caption" style={{ color: 'var(--ink-olive)', textAlign: 'center', margin: '0 0 20px' }}>
-                      🍇 {Array.isArray(selected.grape_variety) ? selected.grape_variety.join(' · ') : selected.grape_variety}
-                    </p>
-                  )}
+                        {grapeOriginal && (
+                          <p className="type-caption" style={{ color: 'var(--ink-olive)', textAlign: 'center', margin: '0 0 20px' }}>
+                            🍇 {showKr && kr.grape_variety ? kr.grape_variety : grapeOriginal}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })()}
 
                   {/* 와인 정보 토글 (기본 OFF) — borderTop이 위 섹션과의 1줄 구분 */}
                   <WineInfoToggle>
@@ -752,10 +807,36 @@ export default function Home() {
                     <button onClick={() => setEditMode(false)} className="type-micro" style={{ background: 'none', border: 'none', color: 'var(--ink-mist)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>← 뒤로</button>
                   </div>
 
-                  {selected.image_url && (
+                  {(selected.image_url || editImagePreview) && (
                     <div style={{ marginBottom: '18px' }}>
-                      <span style={labelStyle}>사진 위치 조정</span>
-                      <ImagePositioner src={selected.image_url} value={editImagePosition} onChange={setEditImagePosition} />
+                      <ImagePositioner
+                        src={editImagePreview || selected.image_url}
+                        value={editImagePosition}
+                        onChange={setEditImagePosition}
+                      />
+                      <label style={{ display: 'block', cursor: 'pointer', marginTop: '8px' }}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (!file) return
+                            setEditImageFile(file)
+                            setEditImagePreview(URL.createObjectURL(file))
+                            setEditImagePosition('50% 50%')
+                          }}
+                          style={{ display: 'none' }}
+                        />
+                        <div className="type-micro" style={{
+                          textAlign: 'center',
+                          color: 'var(--ink-mist)',
+                          padding: '6px',
+                          textDecoration: 'underline',
+                          textUnderlineOffset: '3px',
+                        }}>
+                          {editImagePreview ? '사진 다시 선택' : '사진 변경하기'}
+                        </div>
+                      </label>
                     </div>
                   )}
 

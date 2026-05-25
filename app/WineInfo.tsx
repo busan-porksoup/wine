@@ -4,6 +4,13 @@ import { useState } from 'react'
 
 export type WineInfoData = {
   classification?: string
+  korean_labels?: {
+    name?: string
+    producer?: string
+    region?: string
+    country?: string
+    grape_variety?: string
+  }
   terroir?: {
     region_label?: string
     description?: string
