@@ -8,6 +8,7 @@ import Quiz from './Quiz'
 import Search from './Search'
 import { ImagePositioner, parseImagePosition } from './ImagePositioner'
 import { WineInfo, WineInfoToggle } from './WineInfo'
+import { NOTES_VOCABULARY, normalizeNote } from './notesVocabulary'
 
 const TYPE_BADGE: Record<string, { emoji: string; label: string; bg: string; color: string }> = {
   red:      { emoji: '🍷', label: '레드',   bg: 'rgba(107,31,42,0.10)', color: '#6B1F2A' },
@@ -347,6 +348,8 @@ export default function Home() {
 
   const [tastingTags, setTastingTags] = useState<string[]>([])
   const [tastingLoading, setTastingLoading] = useState(false)
+  const [notePickerOpen, setNotePickerOpen] = useState(false)
+  const [notePickerCats, setNotePickerCats] = useState<Set<string>>(new Set())
 
   const [wineInfoLoading, setWineInfoLoading] = useState(false)
 
@@ -586,11 +589,12 @@ export default function Home() {
         ) : null}
       </div>
 
-      {/* 탭 — italic serif + underline. 5개라 모바일에서 오버플로우 방지용 가로 스크롤 */}
+      {/* 탭 — italic serif + underline. 5개가 모바일 한 줄에 모두 보이도록 */}
       <div className="tab-row" style={{
         display: 'flex',
-        gap: '20px',
-        padding: '0 18px',
+        justifyContent: 'space-between',
+        gap: '4px',
+        padding: '0 14px',
         borderBottom: '1px solid rgba(200,184,154,0.4)',
         overflowX: 'auto',
         scrollbarWidth: 'none',
@@ -997,17 +1001,85 @@ export default function Home() {
 
                   <div style={{ height: 1, background: 'rgba(200,184,154,0.4)', marginBottom: '18px' }}/>
 
-                  {/* 테이스팅 재생성 */}
+                  {/* 테이스팅 재생성 + 수기 추가 */}
                   <div style={{ marginBottom: '20px' }}>
                     <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '12px' }}>Tasting Notes</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
                       {tastingTags.map((tag, i) => (
-                        <span key={i} className="type-micro" style={{ padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'rgba(107,31,42,0.06)', border: '1px solid rgba(107,31,42,0.15)', color: 'var(--ink-bordeaux)', letterSpacing: '0.08em' }}>{tag}</span>
+                        <span key={i} className="type-micro" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px 6px 14px', borderRadius: 'var(--radius-full)', background: 'rgba(107,31,42,0.06)', border: '1px solid rgba(107,31,42,0.15)', color: 'var(--ink-bordeaux)', letterSpacing: '0.08em' }}>
+                          {tag}
+                          <button
+                            onClick={() => setTastingTags(tastingTags.filter((_, idx) => idx !== i))}
+                            aria-label={`${tag} 삭제`}
+                            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', padding: 0, borderRadius: '50%', background: 'rgba(107,31,42,0.12)', border: 'none', color: 'var(--ink-bordeaux)', cursor: 'pointer', fontSize: '10px', lineHeight: 1 }}
+                          >
+                            ✕
+                          </button>
+                        </span>
                       ))}
                     </div>
-                    <button onClick={() => generateTastingNotes(selected)} disabled={tastingLoading} className="type-micro" style={{ padding: '8px 14px', borderRadius: 'var(--radius-md)', background: 'transparent', border: '1px dashed rgba(200,184,154,0.7)', color: 'var(--ink-mist)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                      {tastingLoading ? '생성 중…' : '↺ 재생성'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button onClick={() => generateTastingNotes(selected)} disabled={tastingLoading} className="type-micro" style={{ padding: '8px 14px', borderRadius: 'var(--radius-md)', background: 'transparent', border: '1px dashed rgba(200,184,154,0.7)', color: 'var(--ink-mist)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                        {tastingLoading ? '생성 중…' : '↺ 재생성'}
+                      </button>
+                      <button onClick={() => setNotePickerOpen(o => !o)} className="type-micro" style={{ padding: '8px 14px', borderRadius: 'var(--radius-md)', background: notePickerOpen ? 'var(--ink-bordeaux)' : 'transparent', border: '1px dashed rgba(200,184,154,0.7)', color: notePickerOpen ? '#fff' : 'var(--ink-mist)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                        {notePickerOpen ? '닫기' : '+ 노트 추가'}
+                      </button>
+                    </div>
+
+                    {notePickerOpen && (
+                      <div style={{ marginTop: '14px', padding: '14px', borderRadius: 'var(--radius-md)', background: 'rgba(244,239,230,0.6)', border: '1px solid rgba(200,184,154,0.4)' }}>
+                        <div className="type-micro" style={{ color: 'var(--ink-mist)', marginBottom: '10px', letterSpacing: '0.08em' }}>표준 어휘에서 선택</div>
+                        {NOTES_VOCABULARY.map(cat => {
+                          const expanded = notePickerCats.has(cat.id)
+                          return (
+                            <div key={cat.id} style={{ marginBottom: '8px' }}>
+                              <button
+                                onClick={() => {
+                                  const next = new Set(notePickerCats)
+                                  if (next.has(cat.id)) next.delete(cat.id); else next.add(cat.id)
+                                  setNotePickerCats(next)
+                                }}
+                                className="type-caption"
+                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: 'rgba(250,246,238,0.7)', border: '1px solid rgba(200,184,154,0.3)', color: 'var(--ink-charcoal)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}
+                              >
+                                <span>{cat.name_ko}</span>
+                                <span style={{ color: 'var(--ink-mist)' }}>{expanded ? '−' : '+'}</span>
+                              </button>
+                              {expanded && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '10px 4px 4px' }}>
+                                  {cat.tags.map(entry => {
+                                    const already = tastingTags.some(t => normalizeNote(t) === entry.ko)
+                                    const isUmbrella = !!entry.includes
+                                    return (
+                                      <button
+                                        key={entry.ko}
+                                        onClick={() => { if (!already) setTastingTags([...tastingTags, entry.ko]) }}
+                                        disabled={already}
+                                        className="type-micro"
+                                        style={{
+                                          padding: '6px 12px',
+                                          borderRadius: 'var(--radius-full)',
+                                          background: already ? 'rgba(107,31,42,0.18)' : (isUmbrella ? 'rgba(107,31,42,0.08)' : 'transparent'),
+                                          border: '1px solid rgba(107,31,42,0.2)',
+                                          color: already ? 'var(--ink-mist)' : 'var(--ink-bordeaux)',
+                                          cursor: already ? 'not-allowed' : 'pointer',
+                                          fontFamily: 'var(--font-sans)',
+                                          letterSpacing: '0.06em',
+                                          opacity: already ? 0.55 : 1,
+                                        }}
+                                      >
+                                        {isUmbrella ? `◆ ${entry.ko}` : entry.ko}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {saveMsg && (
