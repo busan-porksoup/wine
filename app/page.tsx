@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import AddWineModal from './AddWineModal'
 import Analytics from './Analytics'
@@ -9,6 +9,7 @@ import Search from './Search'
 import { ImagePositioner, parseImagePosition } from './ImagePositioner'
 import { WineInfo, WineInfoToggle } from './WineInfo'
 import { NOTES_VOCABULARY, normalizeNote } from './notesVocabulary'
+import { useScrollVisible } from '../lib/useScrollVisible'
 
 const TYPE_BADGE: Record<string, { emoji: string; label: string; bg: string; color: string }> = {
   red:      { emoji: '🍷', label: '레드',   bg: 'rgba(107,31,42,0.10)', color: '#6B1F2A' },
@@ -125,107 +126,6 @@ function WineInfoMigration({ wines, onComplete }: { wines: any[]; onComplete: ()
       </button>
     </div>
   )
-}
-
-// 노트 일괄 재생성 — 모든 와인을 새 표준 어휘 사전으로 강제 재태깅
-function TastingTagsMigration({ wines, onComplete }: { wines: any[]; onComplete: () => void }) {
-  // 이름이 있는 모든 와인 (전체 재생성)
-  const needsRetag = wines.filter(w => !!w.name)
-  const [running, setRunning] = useState(false)
-  const [progress, setProgress] = useState({ done: 0, total: 0, failed: 0 })
-  const [completed, setCompleted] = useState(false)
-
-  if (needsRetag.length === 0 && !running) return null
-  if (completed && !running) return null
-
-  async function run() {
-    setRunning(true)
-    setProgress({ done: 0, total: needsRetag.length, failed: 0 })
-    let done = 0, failed = 0
-    for (const wine of needsRetag) {
-      try {
-        const res = await fetch('/api/tasting', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: wine.name,
-            producer: wine.producer,
-            country: wine.country,
-            region: wine.region,
-            grape_variety: wine.grape_variety,
-            vintage_year: wine.vintage_year,
-            wine_type: wine.wine_type,
-          }),
-        })
-        const result = await res.json()
-        if (result.success && Array.isArray(result.tags)) {
-          await supabase.from('wines').update({ tasting_tags: result.tags }).eq('id', wine.id)
-          done++
-        } else {
-          failed++
-        }
-      } catch {
-        failed++
-      }
-      setProgress({ done, total: needsRetag.length, failed })
-    }
-    setRunning(false)
-    setCompleted(true)
-    onComplete()
-  }
-
-  if (running) {
-    const pct = progress.total > 0 ? Math.round((progress.done + progress.failed) / progress.total * 100) : 0
-    return (
-      <div className="glass-card glass-card--light" style={{ padding: '18px 20px', marginBottom: '16px' }}>
-        <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '8px' }}>노트 재생성 중</div>
-        <div className="type-body" style={{ color: 'var(--ink-charcoal)', marginBottom: '12px', fontStyle: 'italic' }}>
-          {progress.done + progress.failed} / {progress.total} 처리 — 페이지를 닫지 마세요
-        </div>
-        <div style={{ height: 4, background: 'rgba(200,184,154,0.3)', borderRadius: 2, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--ink-bordeaux)', transition: 'width 0.4s ease' }}/>
-        </div>
-        {progress.failed > 0 && (
-          <div className="type-micro" style={{ color: 'var(--ink-mist)', marginTop: '8px' }}>
-            {progress.failed}개 실패
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div className="glass-card glass-card--light" style={{ padding: '18px 20px', marginBottom: '16px' }}>
-      <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '6px' }}>테이스팅 노트 표준화</div>
-      <div className="type-body" style={{ color: 'var(--ink-charcoal)', marginBottom: '12px', fontStyle: 'italic' }}>
-        모든 와인({needsRetag.length}개)의 노트를 표준 어휘 사전 기준으로 재생성. 약 1~2분 소요, 비용 약 $0.10
-      </div>
-      <button onClick={run} className="type-caption" style={{
-        padding: '10px 18px', borderRadius: 'var(--radius-md)',
-        background: 'var(--ink-bordeaux)', border: 'none', color: '#fff',
-        cursor: 'pointer', fontFamily: 'var(--font-sans)',
-      }}>
-        ✨ 전체 AI 재생성
-      </button>
-    </div>
-  )
-}
-
-// 스크롤 진입 감지 훅
-function useScrollVisible(threshold = 0.1) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [visible, setVisible] = useState(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect() } },
-      { threshold }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-  return { ref, visible }
 }
 
 // Editorial-style date formatter — "16 MAY 2026"
@@ -664,7 +564,6 @@ export default function Home() {
         <>
           <div style={{ padding: '16px 16px 0' }}>
             <WineInfoMigration wines={wines} onComplete={fetchWines} />
-            <TastingTagsMigration wines={wines} onComplete={fetchWines} />
           </div>
           <Analytics wines={wines} onOpenWine={openDetail} />
         </>

@@ -3,39 +3,10 @@
 import { useMemo, useState } from 'react'
 import { MiniWineCard } from './MiniWineCard'
 import { NOTES_VOCABULARY, normalizeNote, categorizeNote, wineMatchesFilterTag, isUmbrellaTag } from './notesVocabulary'
+import { COUNTRY_FLAG, normalizeCountry } from '../lib/countries'
 
 const TYPE_LABEL: Record<string, string> = {
   red: '레드', white: '화이트', sparkling: '샴페인', rosé: '로제', dessert: '디저트',
-}
-
-const COUNTRY_FLAG: Record<string, string> = {
-  'France': '🇫🇷', 'Italy': '🇮🇹', 'Spain': '🇪🇸', 'Germany': '🇩🇪',
-  'United States': '🇺🇸', 'United Kingdom': '🇬🇧', 'Australia': '🇦🇺', 'Chile': '🇨🇱',
-  'Argentina': '🇦🇷', 'Portugal': '🇵🇹', 'Austria': '🇦🇹', 'New Zealand': '🇳🇿',
-  'South Africa': '🇿🇦', 'Greece': '🇬🇷', 'Hungary': '🇭🇺', 'Romania': '🇷🇴',
-  'Bulgaria': '🇧🇬', 'Croatia': '🇭🇷', 'Slovenia': '🇸🇮', 'Georgia': '🇬🇪',
-  'Lebanon': '🇱🇧', 'Israel': '🇮🇱', 'Japan': '🇯🇵', 'China': '🇨🇳',
-  'South Korea': '🇰🇷',
-}
-
-const COUNTRY_ALIASES: Record<string, string> = {
-  'us': 'United States', 'usa': 'United States', 'u.s.': 'United States',
-  'u.s.a.': 'United States', 'united states': 'United States',
-  'united states of america': 'United States', '미국': 'United States',
-  'uk': 'United Kingdom', 'u.k.': 'United Kingdom', 'great britain': 'United Kingdom',
-  'britain': 'United Kingdom', 'united kingdom': 'United Kingdom', '영국': 'United Kingdom',
-  'korea': 'South Korea', 'south korea': 'South Korea', '한국': 'South Korea',
-  '대한민국': 'South Korea',
-  '프랑스': 'France', '이탈리아': 'Italy', '스페인': 'Spain', '독일': 'Germany',
-  '호주': 'Australia', '칠레': 'Chile', '아르헨티나': 'Argentina', '포르투갈': 'Portugal',
-  '오스트리아': 'Austria', '뉴질랜드': 'New Zealand', '남아프리카': 'South Africa',
-  '그리스': 'Greece', '일본': 'Japan',
-}
-
-function normalizeCountry(name?: string): string {
-  if (!name) return ''
-  const key = name.trim().toLowerCase()
-  return COUNTRY_ALIASES[key] || COUNTRY_ALIASES[name.trim()] || name.trim()
 }
 
 // 노트 카테고리·정규화 로직은 ./notesVocabulary 모듈에서 import
