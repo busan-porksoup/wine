@@ -8,7 +8,6 @@ import Quiz from './Quiz'
 import Search from './Search'
 import { ImagePositioner, parseImagePosition } from './ImagePositioner'
 import { WineInfo, WineInfoToggle } from './WineInfo'
-import { SYNONYM_MAP } from './notesVocabulary'
 
 const TYPE_BADGE: Record<string, { emoji: string; label: string; bg: string; color: string }> = {
   red:      { emoji: '🍷', label: '레드',   bg: 'rgba(107,31,42,0.10)', color: '#6B1F2A' },
@@ -127,17 +126,16 @@ function WineInfoMigration({ wines, onComplete }: { wines: any[]; onComplete: ()
   )
 }
 
-// 노트 일괄 재생성 — 표준 어휘 사전 벗어난 태그 있는 와인을 AI로 재태깅
+// 노트 일괄 재생성 — 모든 와인을 새 표준 어휘 사전으로 강제 재태깅
 function TastingTagsMigration({ wines, onComplete }: { wines: any[]; onComplete: () => void }) {
-  // off-vocabulary 태그 가진 와인 검출
-  const needsRetag = wines.filter(w => {
-    if (!Array.isArray(w.tasting_tags) || w.tasting_tags.length === 0) return false
-    return w.tasting_tags.some((t: string) => !SYNONYM_MAP[t.trim()])
-  })
+  // 이름이 있는 모든 와인 (전체 재생성)
+  const needsRetag = wines.filter(w => !!w.name)
   const [running, setRunning] = useState(false)
   const [progress, setProgress] = useState({ done: 0, total: 0, failed: 0 })
+  const [completed, setCompleted] = useState(false)
 
   if (needsRetag.length === 0 && !running) return null
+  if (completed && !running) return null
 
   async function run() {
     setRunning(true)
@@ -171,6 +169,7 @@ function TastingTagsMigration({ wines, onComplete }: { wines: any[]; onComplete:
       setProgress({ done, total: needsRetag.length, failed })
     }
     setRunning(false)
+    setCompleted(true)
     onComplete()
   }
 
@@ -198,14 +197,14 @@ function TastingTagsMigration({ wines, onComplete }: { wines: any[]; onComplete:
     <div className="glass-card glass-card--light" style={{ padding: '18px 20px', marginBottom: '16px' }}>
       <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '6px' }}>테이스팅 노트 표준화</div>
       <div className="type-body" style={{ color: 'var(--ink-charcoal)', marginBottom: '12px', fontStyle: 'italic' }}>
-        {needsRetag.length}개 와인 노트가 표준 어휘를 벗어남. AI로 재생성하면 일관성 ↑
+        모든 와인({needsRetag.length}개)의 노트를 표준 어휘 사전 기준으로 재생성. 약 1~2분 소요, 비용 약 $0.10
       </div>
       <button onClick={run} className="type-caption" style={{
         padding: '10px 18px', borderRadius: 'var(--radius-md)',
         background: 'var(--ink-bordeaux)', border: 'none', color: '#fff',
         cursor: 'pointer', fontFamily: 'var(--font-sans)',
       }}>
-        ✨ AI로 노트 재생성
+        ✨ 전체 AI 재생성
       </button>
     </div>
   )
