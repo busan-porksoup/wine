@@ -37,6 +37,59 @@ function normalizeCountry(name?: string): string {
   return COUNTRY_ALIASES[key] || COUNTRY_ALIASES[name.trim()] || name.trim()
 }
 
+// 노트 카테고리 매핑
+const NOTE_CATEGORIES: { name: string; keywords: string[] }[] = [
+  {
+    name: '과일·꽃·허브',
+    keywords: [
+      // 검은/붉은/흰 과일
+      '블랙커런트','블랙체리','블랙베리','자두','검은체리','체리','딸기','라즈베리','크랜베리','석류',
+      '사과','배','복숭아','살구','레몬','자몽','오렌지','라임','파인애플','망고','패션프루트','리치',
+      '말린과일','잼','잼처럼','잼같은',
+      // 꽃·허브
+      '장미','제비꽃','라벤더','아카시아','엘더플라워','꽃향','꽃','민트','바질','타임','유칼립투스','솔잎','허브',
+    ],
+  },
+  {
+    name: '향신료·오크·숙성',
+    keywords: [
+      '오크','바닐라','토스트','시가','담배','가죽','삼나무','시더','계피','시나몬','카다멈',
+      '아니스','정향','후추','검은후추','핑크페퍼','스파이시','향신료',
+      '커피','카카오','다크초콜릿','초콜릿','캐러멜','버터','버터스카치','꿀',
+    ],
+  },
+  {
+    name: '미네랄·흙',
+    keywords: [
+      '미네랄','미네랄리티','흑연','화약','부싯돌','점토','백악','석회','젖은돌','젖은','돌','이끼',
+      '버섯','트러플','흙','낙엽','삼림','숲',
+    ],
+  },
+  {
+    name: '구조·질감',
+    keywords: [
+      '탄닌감','탄닌','풀바디','미디엄바디','라이트바디','바디감','바디',
+      '산도','신맛','크리미','실키','벨벳','부드러움','부드러운','거칠음','거친',
+      '드라이','오프드라이','스위트','단맛','리치한','응축감','농축감','농밀',
+    ],
+  },
+  {
+    name: '여운·종합',
+    keywords: [
+      '긴 여운','짧은 여운','깔끔한 여운','여운','마무리','피니시',
+      '복합적','복합미','단순한','우아함','강건함','균형','균형감','모던','클래식',
+      '신선함','신선한','응집된','조화로움',
+    ],
+  },
+]
+
+function categorizeNote(note: string): string {
+  for (const cat of NOTE_CATEGORIES) {
+    if (cat.keywords.some(k => note === k || note.includes(k))) return cat.name
+  }
+  return '기타'
+}
+
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -70,6 +123,16 @@ export default function Search({ wines, onOpenWine }: Props) {
   const [types, setTypes] = useState<string[]>([])
   const [countries, setCountries] = useState<string[]>([])
   const [notes, setNotes] = useState<string[]>([])
+  const [openCats, setOpenCats] = useState<Set<string>>(new Set())
+
+  function toggleCat(cat: string) {
+    setOpenCats(prev => {
+      const next = new Set(prev)
+      if (next.has(cat)) next.delete(cat)
+      else next.add(cat)
+      return next
+    })
+  }
 
   const toggle = (arr: string[], v: string, setter: (next: string[]) => void) => {
     setter(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v])
@@ -144,7 +207,7 @@ export default function Search({ wines, onOpenWine }: Props) {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {sortedCountries.map(c => (
                     <Chip key={c} active={countries.includes(c)} onClick={() => toggle(countries, c, setCountries)}>
-                      {COUNTRY_FLAG[c] || '🍾'} {c} <span style={{ opacity: 0.7, marginLeft: '2px', fontSize: '10px' }}>({countryCount[c]})</span>
+                      <span title={c} style={{ fontSize: '16px', lineHeight: 1 }}>{COUNTRY_FLAG[c] || '🍾'}</span>
                     </Chip>
                   ))}
                 </div>
@@ -152,23 +215,99 @@ export default function Search({ wines, onOpenWine }: Props) {
             </>
           )}
 
-          {sortedNotes.length > 0 && (
-            <>
-              <div style={{ height: 1, background: 'rgba(200,184,154,0.4)', margin: '14px 0' }}/>
-              <div>
-                <div className="type-caption" style={{ color: 'var(--ink-mist)', marginBottom: '10px', fontSize: '10px' }}>
-                  노트 <span style={{ fontSize: '9px', color: 'var(--ink-sand)' }}>(모두 만족하는 와인)</span>
+          {sortedNotes.length > 0 && (() => {
+            // 카테고리별 그룹핑
+            const byCat: Record<string, string[]> = {}
+            sortedNotes.forEach(n => {
+              const cat = categorizeNote(n)
+              if (!byCat[cat]) byCat[cat] = []
+              byCat[cat].push(n)
+            })
+            // 카테고리 순서 (사전 정의 순 + 기타는 마지막)
+            const orderedCats = [
+              ...NOTE_CATEGORIES.map(c => c.name).filter(n => byCat[n]?.length),
+              ...(byCat['기타']?.length ? ['기타'] : []),
+            ]
+            return (
+              <>
+                <div style={{ height: 1, background: 'rgba(200,184,154,0.4)', margin: '14px 0' }}/>
+                <div>
+                  <div className="type-caption" style={{ color: 'var(--ink-mist)', marginBottom: '12px', fontSize: '10px' }}>
+                    노트 <span style={{ fontSize: '9px', color: 'var(--ink-sand)' }}>(모두 만족하는 와인)</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {orderedCats.map((cat, idx) => {
+                      const isOpen = openCats.has(cat)
+                      const selectedInCat = byCat[cat].filter(n => notes.includes(n)).length
+                      return (
+                        <div key={cat}>
+                          {idx > 0 && <div style={{ height: 1, background: 'rgba(200,184,154,0.3)' }}/>}
+                          <button
+                            onClick={() => toggleCat(cat)}
+                            aria-expanded={isOpen}
+                            style={{
+                              width: '100%', padding: '10px 0',
+                              background: 'none', border: 'none', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              fontFamily: 'var(--font-sans)',
+                            }}
+                          >
+                            <span style={{
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              color: 'var(--ink-charcoal)',
+                              letterSpacing: '-0.01em',
+                            }}>
+                              {cat}
+                              <span style={{
+                                color: 'var(--ink-mist)',
+                                fontWeight: 400,
+                                marginLeft: '6px',
+                                fontSize: '11px',
+                              }}>
+                                ({byCat[cat].length})
+                              </span>
+                              {selectedInCat > 0 && (
+                                <span style={{
+                                  color: 'var(--ink-bordeaux)',
+                                  fontSize: '11px',
+                                  marginLeft: '6px',
+                                  fontWeight: 600,
+                                }}>
+                                  · {selectedInCat} 선택
+                                </span>
+                              )}
+                            </span>
+                            <span style={{
+                              width: 22, height: 22, borderRadius: '50%',
+                              border: '1px solid rgba(107,31,42,0.35)',
+                              background: isOpen ? 'var(--ink-bordeaux)' : 'rgba(107,31,42,0.06)',
+                              color: isOpen ? '#fff' : 'var(--ink-bordeaux)',
+                              fontSize: '12px', fontWeight: 400,
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              lineHeight: 1, paddingBottom: '1px',
+                              transform: isOpen ? 'rotate(45deg)' : 'rotate(0deg)',
+                              transition: 'transform var(--dur-base) var(--ease-out-soft), background var(--dur-base) ease, color var(--dur-base) ease',
+                              flexShrink: 0,
+                            }}>+</span>
+                          </button>
+                          {isOpen && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', paddingBottom: '12px' }}>
+                              {byCat[cat].map(n => (
+                                <Chip key={n} active={notes.includes(n)} onClick={() => toggle(notes, n, setNotes)}>
+                                  {n} <span style={{ opacity: 0.7, marginLeft: '2px', fontSize: '10px' }}>({noteCount[n]})</span>
+                                </Chip>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {sortedNotes.map(n => (
-                    <Chip key={n} active={notes.includes(n)} onClick={() => toggle(notes, n, setNotes)}>
-                      {n} <span style={{ opacity: 0.7, marginLeft: '2px', fontSize: '10px' }}>({noteCount[n]})</span>
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
+              </>
+            )
+          })()}
 
           {hasFilter && (
             <div style={{ marginTop: '16px', textAlign: 'center' }}>

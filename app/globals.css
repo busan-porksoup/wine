@@ -146,14 +146,20 @@ body {
 /* ============================================
    HIDE SCROLLBARS — editorial aesthetic, no track on right edge
    ============================================ */
-html, body, .modal-sheet {
+html, body, .modal-sheet, .tab-row {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 html::-webkit-scrollbar,
 body::-webkit-scrollbar,
-.modal-sheet::-webkit-scrollbar {
+.modal-sheet::-webkit-scrollbar,
+.tab-row::-webkit-scrollbar {
   display: none;
+}
+
+/* 모바일 우측 여백 방지 — body 가로 오버플로우 차단 */
+html, body {
+  overflow-x: hidden;
 }
 
 /* ============================================

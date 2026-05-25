@@ -502,14 +502,22 @@ export default function Home() {
         ) : null}
       </div>
 
-      {/* 탭 — italic serif + underline */}
-      <div style={{ display: 'flex', gap: '28px', padding: '0 24px', borderBottom: '1px solid rgba(200,184,154,0.4)' }}>
+      {/* 탭 — italic serif + underline. 5개라 모바일에서 오버플로우 방지용 가로 스크롤 */}
+      <div className="tab-row" style={{
+        display: 'flex',
+        gap: '20px',
+        padding: '0 18px',
+        borderBottom: '1px solid rgba(200,184,154,0.4)',
+        overflowX: 'auto',
+        scrollbarWidth: 'none',
+      }}>
         {['홈', '분석', 'Blog', 'Quiz', 'Search'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`tab-btn ${activeTab === tab ? 'is-active' : ''}`}
             aria-selected={activeTab === tab}
+            style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
           >
             {tab === '홈' ? 'Home' : tab === '분석' ? 'Analysis' : tab}
           </button>
