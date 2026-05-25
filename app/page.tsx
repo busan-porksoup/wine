@@ -5,6 +5,7 @@ import AddWineModal from './AddWineModal'
 import Analytics from './Analytics'
 import Blog from './Blog'
 import Quiz from './Quiz'
+import Search from './Search'
 import { ImagePositioner, parseImagePosition } from './ImagePositioner'
 import { WineInfo, WineInfoToggle } from './WineInfo'
 
@@ -503,7 +504,7 @@ export default function Home() {
 
       {/* 탭 — italic serif + underline */}
       <div style={{ display: 'flex', gap: '28px', padding: '0 24px', borderBottom: '1px solid rgba(200,184,154,0.4)' }}>
-        {['홈', '분석', 'Blog', 'Quiz'].map(tab => (
+        {['홈', '분석', 'Blog', 'Quiz', 'Search'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -575,6 +576,8 @@ export default function Home() {
       {activeTab === 'Blog' && <Blog />}
 
       {activeTab === 'Quiz' && <Quiz wines={wines} onOpenWine={openDetail} />}
+
+      {activeTab === 'Search' && <Search wines={wines} onOpenWine={openDetail} />}
 
       {/* + 버튼 — Bordeaux solid */}
       <button onClick={() => setShowAdd(true)} aria-label="와인 추가" style={{
