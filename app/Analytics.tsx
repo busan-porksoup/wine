@@ -564,7 +564,8 @@ export default function Analytics({ wines, onOpenWine }: { wines: any[]; onOpenW
         <BarSection caption="Paired Most Often" data={foodData} accent="var(--ink-ochre)" unit="회" labelEmoji={FOOD_EMOJI} delay={0} />
       )}
 
-      <QuizStatsCard />
+      {/* Quiz 응시 통계 — 사용 빈도 낮아 숨김. 다시 보이려면 주석 해제 */}
+      {/* <QuizStatsCard /> */}
 
       <AIInsight insight={insight} loading={loading} insightError={insightError} onFetch={fetchInsight} />
     </div>

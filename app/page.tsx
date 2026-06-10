@@ -499,7 +499,7 @@ export default function Home() {
         overflowX: 'auto',
         scrollbarWidth: 'none',
       }}>
-        {['홈', '분석', 'Blog', 'Quiz', 'Search'].map(tab => (
+        {['홈', '분석', 'Blog', 'Search'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -571,7 +571,8 @@ export default function Home() {
 
       {activeTab === 'Blog' && <Blog />}
 
-      {activeTab === 'Quiz' && <Quiz wines={wines} onOpenWine={openDetail} />}
+      {/* Quiz 탭 — 사용 빈도 낮아 숨김. 다시 보이려면 위 tabs 배열에 'Quiz' 추가 */}
+      {false && activeTab === 'Quiz' && <Quiz wines={wines} onOpenWine={openDetail} />}
 
       {activeTab === 'Search' && <Search wines={wines} onOpenWine={openDetail} />}
 
