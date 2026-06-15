@@ -409,6 +409,168 @@ function QuizStatsCard() {
   )
 }
 
+// CSV export — 모든 와인 한 줄씩. 미리보기 → 다운로드 흐름.
+const EXPORT_HEADERS = ['마신날', '와인명', '생산자', '국가', '지역', '빈티지', '종류', '포도품종', '페어링', '테이스팅노트', '재혁메모', '원우메모'] as const
+
+function buildExportRows(wines: any[]): string[][] {
+  function joinArr(a: any): string {
+    if (!Array.isArray(a)) return ''
+    return a.filter(Boolean).join(' | ')
+  }
+  const sorted = [...wines].sort((a, b) => (b.drunk_at || '').localeCompare(a.drunk_at || ''))
+  return sorted.map(w => {
+    let memoJ = '', memoW = ''
+    try {
+      const m = JSON.parse(w.memo || '{}')
+      memoJ = m.jaehyuk || ''
+      memoW = m.wonwoo || ''
+    } catch {}
+    return [
+      w.drunk_at || '',
+      w.name || '',
+      w.producer || '',
+      w.country || '',
+      w.region || '',
+      String(w.vintage_year || ''),
+      w.wine_type || '',
+      joinArr(w.grape_variety),
+      joinArr(w.food_pairings),
+      joinArr(w.tasting_tags),
+      memoJ,
+      memoW,
+    ]
+  })
+}
+
+function ExportButton({ wines }: { wines: any[] }) {
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const rows = previewOpen ? buildExportRows(wines) : []
+
+  function downloadCsv() {
+    function escape(v: any): string {
+      if (v === null || v === undefined) return ''
+      const s = String(v)
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) return `"${s.replace(/"/g, '""')}"`
+      return s
+    }
+    const data = buildExportRows(wines)
+    const csv = '﻿' + [EXPORT_HEADERS.join(','), ...data.map(r => r.map(escape).join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const d = new Date()
+    const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `wine-archive-${stamp}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <>
+      <section className="glass-card glass-card--light" style={{ padding: '20px 22px', marginBottom: '20px' }}>
+        <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '6px' }}>Export</div>
+        <div className="type-body" style={{ color: 'var(--ink-mist)', marginBottom: '14px', fontStyle: 'italic' }}>
+          전체 와인({wines.length}병)을 CSV로 내려받기 — 엑셀·구글시트에서 열 수 있음
+        </div>
+        <button onClick={() => setPreviewOpen(true)} className="type-caption" style={{
+          padding: '10px 18px', borderRadius: 'var(--radius-md)',
+          background: 'var(--ink-bordeaux)', border: 'none', color: '#fff',
+          cursor: 'pointer', fontFamily: 'var(--font-sans)',
+        }}>
+          미리보기 + 다운로드
+        </button>
+      </section>
+
+      {previewOpen && (
+        <div
+          onClick={() => setPreviewOpen(false)}
+          className="modal-backdrop"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(42,36,32,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="glass-card glass-card--strong"
+            style={{
+              width: '100%', maxWidth: '720px', maxHeight: '90vh',
+              display: 'flex', flexDirection: 'column',
+              padding: '20px', borderRadius: 'var(--radius-lg)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div>
+                <div className="type-caption" style={{ color: 'var(--ink-bordeaux)' }}>Export Preview</div>
+                <div className="type-micro" style={{ color: 'var(--ink-mist)', marginTop: '4px' }}>
+                  {wines.length}병 · {EXPORT_HEADERS.length}개 컬럼
+                </div>
+              </div>
+              <button
+                onClick={() => setPreviewOpen(false)}
+                aria-label="닫기"
+                style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid rgba(200,184,154,0.5)', background: 'transparent', color: 'var(--ink-mist)', cursor: 'pointer', fontSize: 16 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflow: 'auto', border: '1px solid rgba(200,184,154,0.4)', borderRadius: 'var(--radius-sm)', background: 'rgba(250,246,238,0.5)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', fontFamily: 'var(--font-sans)' }}>
+                <thead style={{ position: 'sticky', top: 0, background: 'var(--ink-bordeaux)', color: '#fff', zIndex: 1 }}>
+                  <tr>
+                    {EXPORT_HEADERS.map(h => (
+                      <th key={h} style={{ padding: '8px 10px', textAlign: 'left', letterSpacing: '0.04em', whiteSpace: 'nowrap', fontWeight: 500 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid rgba(200,184,154,0.25)' }}>
+                      {r.map((cell, j) => (
+                        <td key={j} style={{
+                          padding: '7px 10px',
+                          color: 'var(--ink-charcoal)',
+                          maxWidth: '180px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }} title={cell}>
+                          {cell || <span style={{ color: 'var(--ink-sand)' }}>—</span>}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+              <button onClick={() => setPreviewOpen(false)} className="type-caption" style={{
+                flex: 1, padding: '12px', borderRadius: 'var(--radius-md)',
+                background: 'transparent', border: '1px solid rgba(200,184,154,0.6)',
+                color: 'var(--ink-mist)', cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              }}>
+                닫기
+              </button>
+              <button onClick={downloadCsv} className="type-caption" style={{
+                flex: 2, padding: '12px', borderRadius: 'var(--radius-md)',
+                background: 'var(--ink-bordeaux)', border: 'none', color: '#fff',
+                cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              }}>
+                ↓ CSV 다운로드
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function Analytics({ wines, onOpenWine }: { wines: any[]; onOpenWine?: (wine: any) => void }) {
   const [insight, setInsight] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -566,6 +728,8 @@ export default function Analytics({ wines, onOpenWine }: { wines: any[]; onOpenW
 
       {/* Quiz 응시 통계 — 사용 빈도 낮아 숨김. 다시 보이려면 주석 해제 */}
       {/* <QuizStatsCard /> */}
+
+      {wines.length > 0 && <ExportButton wines={wines} />}
 
       <AIInsight insight={insight} loading={loading} insightError={insightError} onFetch={fetchInsight} />
     </div>
