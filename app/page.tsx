@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { db } from '../lib/db'
 import AddWineModal from './AddWineModal'
 import Analytics from './Analytics'
 import Blog from './Blog'
@@ -76,7 +76,7 @@ function WineInfoMigration({ wines, onComplete }: { wines: any[]; onComplete: ()
         })
         const result = await res.json()
         if (result.success && result.wine_info) {
-          await supabase.from('wines').update({ wine_info: result.wine_info }).eq('id', wine.id)
+          await db.updateWine(wine.id, { wine_info: result.wine_info })
           done++
         } else {
           failed++
@@ -274,8 +274,7 @@ export default function Home() {
     : wines.filter(w => w.drunk_at?.startsWith(yearFilter))
 
   async function fetchWines() {
-    const { data, error } = await supabase
-      .from('wines').select('*').order('drunk_at', { ascending: false })
+    const { data, error } = await db.listWines()
     if (!error && data) setWines(data)
   }
 
@@ -300,7 +299,7 @@ export default function Home() {
     }
     setBannerLoading(true)
     try {
-      const { data } = await supabase.from('wines').select('*').order('drunk_at', { ascending: false })
+      const { data } = await db.listWines()
       const res = await fetch('/api/banner', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -367,7 +366,7 @@ export default function Home() {
       })
       const result = await res.json()
       if (result.success && result.wine_info) {
-        await supabase.from('wines').update({ wine_info: result.wine_info }).eq('id', wine.id)
+        await db.updateWine(wine.id, { wine_info: result.wine_info })
         setSelected((prev: any) => prev?.id === wine.id ? { ...prev, wine_info: result.wine_info } : prev)
         setWines(prev => prev.map(w => w.id === wine.id ? { ...w, wine_info: result.wine_info } : w))
       }
@@ -385,7 +384,7 @@ export default function Home() {
       const result = await res.json()
       if (result.success && result.tags) {
         setTastingTags(result.tags)
-        await supabase.from('wines').update({ tasting_tags: result.tags }).eq('id', wine.id)
+        await db.updateWine(wine.id, { tasting_tags: result.tags })
       }
     } catch {}
     setTastingLoading(false)
@@ -414,16 +413,13 @@ export default function Home() {
     if (editMode) {
       // 새 사진 선택했으면 먼저 업로드
       if (editImageFile) {
-        const ext = editImageFile.name.split('.').pop()
-        const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
-        const { error: upErr } = await supabase.storage.from('wine-images').upload(fileName, editImageFile)
-        if (upErr) {
+        const { data: up, error: upErr } = await db.uploadImage(editImageFile)
+        if (upErr || !up) {
           setSaving(false)
-          setSaveMsg('사진 업로드 실패: ' + upErr.message)
+          setSaveMsg('사진 업로드 실패: ' + upErr?.message)
           return
         }
-        const { data: urlData } = supabase.storage.from('wine-images').getPublicUrl(fileName)
-        updateData.image_url = urlData.publicUrl
+        updateData.image_url = up.url
       }
       Object.assign(updateData, {
         name: editName, producer: editProducer || null,
@@ -436,7 +432,7 @@ export default function Home() {
         image_position: editImagePosition,
       })
     }
-    const { error } = await supabase.from('wines').update(updateData).eq('id', selected.id)
+    const { error } = await db.updateWine(selected.id, updateData)
     setSaving(false)
     if (error) { setSaveMsg('저장 실패 😢 ' + error.message) }
     else {
@@ -450,7 +446,7 @@ export default function Home() {
     if (!selected) return
     if (!confirm(`"${selected.name}" 을 삭제할까요?`)) return
     setDeleting(true)
-    const { error } = await supabase.from('wines').delete().eq('id', selected.id)
+    const { error } = await db.deleteWine(selected.id)
     setDeleting(false)
     if (error) { setSaveMsg('삭제 실패 😢 ' + error.message) }
     else { await fetchWines(); setSelected(null) }

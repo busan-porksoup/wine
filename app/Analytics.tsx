@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
-import { supabase } from '../lib/supabase'
 import { MiniWineCard } from './MiniWineCard'
 import { normalizeCountry, countryWithFlag } from '../lib/countries'
 import { useScrollVisible } from '../lib/useScrollVisible'

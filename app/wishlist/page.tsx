@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { supabase } from '../../lib/supabase'
+import { db } from '../../lib/db'
 import AddWishModal from '../AddWishModal'
 
 const WINE_TYPE_EMOJI: Record<string, string> = {
@@ -55,11 +55,7 @@ export default function Wishlist() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   async function fetchItems() {
-    const { data, error } = await supabase
-      .from('wishlist')
-      .select('*')
-      .order('priority', { ascending: false })
-      .order('added_at', { ascending: false })
+    const { data, error } = await db.listWishlist()
     if (!error && data) setItems(data as WishItem[])
   }
 
@@ -73,7 +69,7 @@ export default function Wishlist() {
       : `"${item.name}" 을(를) 위시리스트에서 삭제할까요?`
     if (!confirm(msg)) return
     setDeletingId(item.id)
-    const { error } = await supabase.from('wishlist').delete().eq('id', item.id)
+    const { error } = await db.deleteWish(item.id)
     setDeletingId(null)
     if (error) { alert('삭제 실패: ' + error.message); return }
     await fetchItems()

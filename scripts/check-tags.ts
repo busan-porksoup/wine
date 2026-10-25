@@ -2,38 +2,18 @@
  * 모든 와인의 tasting_tags를 우리 동의어 사전과 대조.
  * 사전에 없는 태그를 빈도순으로 출력.
  *
- * 실행: npx tsx scripts/check-tags.ts
+ * 실행: npx tsx scripts/check-tags.ts  (배포된 사이트의 /api/wines를 읽음. 다른 주소: SITE=http://localhost:3001)
  */
-import { createClient } from '@supabase/supabase-js'
-import { readFileSync } from 'node:fs'
 import { SYNONYM_MAP } from '../app/notesVocabulary'
 
-// .env.local 로드
-const env: Record<string, string> = {}
-const envContent = readFileSync('.env.local', 'utf-8').replace(/\r/g, '')
-envContent.split('\n').forEach(line => {
-  const trimmed = line.trim()
-  if (!trimmed || trimmed.startsWith('#')) return
-  const idx = trimmed.indexOf('=')
-  if (idx < 0) return
-  const key = trimmed.slice(0, idx).trim()
-  const value = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, '')
-  env[key] = value
-})
-
-console.log('URL:', env.NEXT_PUBLIC_SUPABASE_URL ? '✓' : '✗ MISSING')
-console.log('KEY:', env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '✓' : '✗ MISSING')
-
-const supabase = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL!,
-  env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-)
+const SITE = process.env.SITE || 'https://wine.onewoo90.workers.dev'
 
 async function main() {
-  const { data, error } = await supabase.from('wines').select('name, tasting_tags')
+  const res = await fetch(`${SITE}/api/wines`)
+  const { data, error } = await res.json() as { data?: { name: string; tasting_tags: string[] | null }[]; error?: string }
 
-  if (error || !data) {
-    console.error('Error fetching wines:', error)
+  if (!res.ok || !data) {
+    console.error('Error fetching wines:', error || res.status)
     process.exit(1)
   }
 

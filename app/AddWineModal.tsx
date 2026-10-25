@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { db } from '../lib/db'
 import { photoDate } from '../lib/photoDate'
 import { ImagePositioner } from './ImagePositioner'
 
@@ -115,14 +115,8 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
 
   async function saveOne(formData: WineForm, file: File, imagePos?: string): Promise<boolean> {
     try {
-      let image_url = null
-      const ext = file.name.split('.').pop()
-      const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
-      const { error: uploadError } = await supabase.storage.from('wine-images').upload(fileName, file)
-      if (!uploadError) {
-        const { data: urlData } = supabase.storage.from('wine-images').getPublicUrl(fileName)
-        image_url = urlData.publicUrl
-      }
+      const { data: up } = await db.uploadImage(file)
+      const image_url = up?.url ?? null
       const insertPayload = {
         name: formData.name,
         producer: formData.producer || null,
@@ -135,11 +129,7 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
         image_url,
         image_position: imagePos || '50% 50%',
       }
-      const { data: inserted, error } = await supabase
-        .from('wines')
-        .insert(insertPayload)
-        .select('id')
-        .single()
+      const { data: inserted, error } = await db.addWine(insertPayload)
       if (error || !inserted) return false
 
       // 백그라운드로 wine_info 생성 (응답 대기 안 함)
@@ -159,7 +149,7 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
         .then(r => r.json())
         .then(result => {
           if (result.success && result.wine_info) {
-            supabase.from('wines').update({ wine_info: result.wine_info }).eq('id', inserted.id)
+            db.updateWine(inserted.id, { wine_info: result.wine_info })
           }
         })
         .catch(() => {})

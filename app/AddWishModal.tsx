@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { db } from '../lib/db'
 
 const WINE_TYPES = [
   { value: 'red',       label: '레드',   emoji: '🍷' },
@@ -64,15 +64,10 @@ export default function AddWishModal({ onClose, onSaved }: Props) {
     try {
       let photo_url: string | null = null
       if (imageFile) {
-        const ext = imageFile.name.split('.').pop()
-        const fileName = `wish_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
-        const { error: upErr } = await supabase.storage.from('wine-images').upload(fileName, imageFile)
-        if (!upErr) {
-          const { data } = supabase.storage.from('wine-images').getPublicUrl(fileName)
-          photo_url = data.publicUrl
-        }
+        const { data: up } = await db.uploadImage(imageFile)
+        photo_url = up?.url ?? null
       }
-      const { error: insErr } = await supabase.from('wishlist').insert({
+      const { error: insErr } = await db.addWish({
         name: name.trim(),
         vintage_year: vintage ? parseInt(vintage) : null,
         region: region || null,

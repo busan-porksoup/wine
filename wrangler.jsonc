@@ -1,7 +1,7 @@
 // Cloudflare 워커 "wine" = 와인 저널 (Next.js 16 → vinext로 빌드)
 // - 빌드: npm run build:vinext → dist/ (화면 파일은 dist/client, 서버는 vinext fetch-handler)
 // - 비밀값 ANTHROPIC_API_KEY는 대시보드에만 입력 (Settings → Variables and Secrets)
-// - NEXT_PUBLIC_SUPABASE_* 는 빌드 때 코드에 박히므로 Workers Builds의 "빌드 변수"에도 넣어야 함
+// - 데이터: D1 "wine"(wines·wishlist 테이블), 사진: R2 "wine-images" → /images/<파일명> 으로 서비스
 // 배포: main에 push하면 Workers Builds가 자동 배포
 {
   "$schema": "node_modules/wrangler/config-schema.json",
@@ -22,6 +22,12 @@
       "!/*/_next/static/*"
     ]
   },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "wine", "database_id": "9daf12a1-9579-4130-8f3a-52bdcc9f2d11" }
+  ],
+  "r2_buckets": [
+    { "binding": "IMAGES", "bucket_name": "wine-images" }
+  ],
   // 한국 요청이 홍콩 데이터센터로 가면 Anthropic이 403 "Request not allowed"로 막음 → 미국 동부에서 실행
   "placement": { "region": "aws:us-east-1" },
   "observability": { "enabled": true }
