@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { photoDate } from '../lib/photoDate'
 import { ImagePositioner } from './ImagePositioner'
 
 const WINE_TYPES = [
@@ -66,8 +67,7 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
     setImagePreview(URL.createObjectURL(file))
     setImagePosition('50% 50%')
     setAiMsg('')
-    const d = new Date(file.lastModified)
-    setF('drunk_at', `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)
+    photoDate(file).then(date => setF('drunk_at', date))
   }
 
   function handleMultiImages(e: React.ChangeEvent<HTMLInputElement>) {
@@ -90,8 +90,7 @@ export default function AddWineModal({ onClose, onSaved }: { onClose: () => void
   async function recognizeOne(file: File): Promise<WineForm | null> {
     try {
       const base64 = await fileToBase64(file)
-      const d = new Date(file.lastModified)
-      const drunk_at = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+      const drunk_at = await photoDate(file)
 
       const res = await fetch('/api/recognize', {
         method: 'POST',
