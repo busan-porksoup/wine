@@ -290,125 +290,6 @@ function ExpandableYearChart({ monthData, wines, onOpenWine }: {
   )
 }
 
-// ── Quiz 통계 카드 (응시자별 좌우 분할) ──
-type QuizUserStats = {
-  total: number
-  accuracy: number
-  strong: string[]
-  weak: string[]
-}
-
-function QuizStatColumn({ name, stats }: { name: string; stats: QuizUserStats | null }) {
-  if (!stats || stats.total === 0) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <div style={{
-          fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '14px',
-          color: 'var(--ink-charcoal)', letterSpacing: '-0.01em',
-        }}>{name}</div>
-        <div className="type-micro" style={{ color: 'var(--ink-mist)', fontStyle: 'italic', textTransform: 'none', letterSpacing: 0 }}>
-          아직 응시 기록 없음
-        </div>
-      </div>
-    )
-  }
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <div style={{
-        fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '14px',
-        color: 'var(--ink-charcoal)', letterSpacing: '-0.01em',
-      }}>{name}</div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-        <span className="type-title-md" style={{
-          fontStyle: 'italic', color: 'var(--ink-bordeaux)',
-          fontSize: '24px', letterSpacing: 0,
-        }}>
-          {stats.accuracy}<span style={{ fontSize: '13px', color: 'var(--ink-mist)' }}>%</span>
-        </span>
-        <span className="type-micro" style={{ color: 'var(--ink-mist)' }}>
-          / {stats.total}문항
-        </span>
-      </div>
-      {stats.strong.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-            <span style={{ color: 'var(--ink-olive)', fontSize: '11px' }}>↑</span>
-            <span className="type-micro" style={{ color: 'var(--ink-mist)', textTransform: 'none', letterSpacing: 0, fontSize: '10px' }}>강점</span>
-          </div>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: 'var(--ink-charcoal)', lineHeight: 1.4 }}>
-            {stats.strong.join(' · ')}
-          </span>
-        </div>
-      )}
-      {stats.weak.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-            <span style={{ color: '#B53E2A', fontSize: '11px' }}>↓</span>
-            <span className="type-micro" style={{ color: 'var(--ink-mist)', textTransform: 'none', letterSpacing: 0, fontSize: '10px' }}>약점</span>
-          </div>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: 'var(--ink-charcoal)', lineHeight: 1.4 }}>
-            {stats.weak.join(' · ')}
-          </span>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function QuizStatsCard() {
-  const [stats, setStats] = useState<Record<string, QuizUserStats | null>>({ 재혁: null, 원우: null })
-
-  useEffect(() => {
-    async function load() {
-      const { data } = await supabase
-        .from('quiz_attempts')
-        .select('user_name, category, is_correct')
-      if (!data) return
-
-      const computed: Record<string, QuizUserStats | null> = { 재혁: null, 원우: null }
-      for (const name of ['재혁', '원우']) {
-        const rows = data.filter(d => d.user_name === name)
-        if (rows.length === 0) { computed[name] = null; continue }
-        const total = rows.length
-        const accuracy = Math.round(rows.filter(r => r.is_correct).length / total * 100)
-        // category accuracy (min 3 attempts in that category)
-        const byCat: Record<string, { total: number; correct: number }> = {}
-        for (const r of rows) {
-          const c = r.category || '기타'
-          if (!byCat[c]) byCat[c] = { total: 0, correct: 0 }
-          byCat[c].total++
-          if (r.is_correct) byCat[c].correct++
-        }
-        const catList = Object.entries(byCat)
-          .filter(([_, v]) => v.total >= 3)
-          .map(([c, v]) => ({ category: c, accuracy: v.correct / v.total }))
-          .sort((a, b) => b.accuracy - a.accuracy)
-        computed[name] = {
-          total, accuracy,
-          strong: catList.slice(0, 2).map(c => c.category),
-          weak: catList.slice(-2).reverse().map(c => c.category).filter(c => !catList.slice(0, 2).map(x => x.category).includes(c)),
-        }
-      }
-      setStats(computed)
-    }
-    load()
-  }, [])
-
-  return (
-    <section className="glass-card glass-card--light" style={{ padding: '22px', marginBottom: '20px' }}>
-      <div className="type-caption" style={{ color: 'var(--ink-bordeaux)', marginBottom: '16px' }}>Quiz · 응시 통계</div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1px 1fr',
-        gap: '18px', alignItems: 'stretch',
-      }}>
-        <QuizStatColumn name="재혁" stats={stats.재혁} />
-        <div style={{ background: 'rgba(200,184,154,0.4)' }}/>
-        <QuizStatColumn name="원우" stats={stats.원우} />
-      </div>
-    </section>
-  )
-}
-
 // CSV export — 모든 와인 한 줄씩. 미리보기 → 다운로드 흐름.
 const EXPORT_HEADERS = ['마신날', '와인명', '생산자', '국가', '지역', '빈티지', '종류', '포도품종', '페어링', '테이스팅노트', '재혁메모', '원우메모'] as const
 
@@ -726,8 +607,6 @@ export default function Analytics({ wines, onOpenWine }: { wines: any[]; onOpenW
         <BarSection caption="Paired Most Often" data={foodData} accent="var(--ink-ochre)" unit="회" labelEmoji={FOOD_EMOJI} delay={0} />
       )}
 
-      {/* Quiz 응시 통계 — 사용 빈도 낮아 숨김. 다시 보이려면 주석 해제 */}
-      {/* <QuizStatsCard /> */}
 
       {wines.length > 0 && <ExportButton wines={wines} />}
 

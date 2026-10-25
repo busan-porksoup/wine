@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase'
 import AddWineModal from './AddWineModal'
 import Analytics from './Analytics'
 import Blog from './Blog'
-import Quiz from './Quiz'
 import Search from './Search'
 import { ImagePositioner, parseImagePosition } from './ImagePositioner'
 import { WineInfo, WineInfoToggle } from './WineInfo'
@@ -570,9 +569,6 @@ export default function Home() {
       )}
 
       {activeTab === 'Blog' && <Blog />}
-
-      {/* Quiz 탭 — 사용 빈도 낮아 숨김. 다시 보이려면 위 tabs 배열에 'Quiz' 추가 */}
-      {false && activeTab === 'Quiz' && <Quiz wines={wines} onOpenWine={openDetail} />}
 
       {activeTab === 'Search' && <Search wines={wines} onOpenWine={openDetail} />}
 
